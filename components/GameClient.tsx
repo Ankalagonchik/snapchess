@@ -1,0 +1,545 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Chess } from "chess.js";
+import { Chessboard } from "react-chessboard";
+
+import type { PublicGame } from "@/lib/types";
+
+const TOKEN_KEY = "snapchess.token";
+const USERNAME_KEY = "snapchess.username";
+
+function formatMs(value: number) {
+  const totalSeconds = Math.max(0, Math.floor(value / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function getMyColor(game: PublicGame | null, username: string | null) {
+  if (!game || !username) {
+    return null;
+  }
+  if (game.white === username) {
+    return "white";
+  }
+  if (game.black === username) {
+    return "black";
+  }
+  return null;
+}
+
+function getLiveDisplayTimes(game: PublicGame | null) {
+  if (!game) {
+    return { white: 0, black: 0 };
+  }
+
+  const elapsed = game.status === "active" ? Math.max(0, Date.now() - Date.parse(game.clockSnapshotAt)) : 0;
+  if (game.status !== "active") {
+    return { white: game.liveWhiteTimeMs, black: game.liveBlackTimeMs };
+  }
+
+  if (game.turn === "w") {
+    return {
+      white: Math.max(0, game.liveWhiteTimeMs - elapsed),
+      black: game.liveBlackTimeMs,
+    };
+  }
+
+  return {
+    white: game.liveWhiteTimeMs,
+    black: Math.max(0, game.liveBlackTimeMs - elapsed),
+  };
+}
+
+async function api<T>(url: string, options: RequestInit = {}, token?: string | null): Promise<T> {
+  const headers = new Headers(options.headers || {});
+  headers.set("content-type", "application/json");
+  if (token) {
+    headers.set("authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(url, { ...options, headers });
+  const payload = (await response.json()) as T & { error?: string };
+  if (!response.ok) {
+    throw new Error(payload.error || "Request failed");
+  }
+  return payload;
+}
+
+export function GameClient({ gameId }: { gameId: string }) {
+  const sharePath = `/game/${gameId}`;
+  const [usernameInput, setUsernameInput] = useState("");
+  const [username, setUsername] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [game, setGame] = useState<PublicGame | null>(null);
+  const [status, setStatus] = useState("Loading board...");
+  const [error, setError] = useState<string | null>(null);
+  const [stakeMemo, setStakeMemo] = useState("");
+  const [tableCollapsed, setTableCollapsed] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  const myColor = getMyColor(game, username);
+  const displayTimes = useMemo(() => getLiveDisplayTimes(game), [game, tick]);
+  const canMove = game && game.status === "active" && ((game.turn === "w" && myColor === "white") || (game.turn === "b" && myColor === "black"));
+  const canJoin = Boolean(game && username && game.white !== username && !game.black);
+  const canAbort = Boolean(game && username && game.createdBy === username && game.isAbortable && game.status !== "finished");
+  const canLeave = Boolean(game && username && myColor && game.isAbortable && game.status !== "finished");
+
+  useEffect(() => {
+    const storedToken = window.localStorage.getItem(TOKEN_KEY);
+    const storedUser = window.localStorage.getItem(USERNAME_KEY);
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUsername(storedUser);
+      setUsernameInput(storedUser);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTick((value) => value + 1), 250);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      try {
+        const payload = await api<{ game: PublicGame }>(`/api/games/${gameId}`, { method: "GET" }, token);
+        if (active) {
+          setGame(payload.game);
+          setStatus(`Board ${payload.game.inviteCode}`);
+        }
+      } catch (requestError) {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : "Could not load game.");
+        }
+      }
+    };
+
+    void load();
+    const interval = window.setInterval(load, 2000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [gameId, token]);
+
+  async function loginWithKeychain() {
+    setError(null);
+    const username = usernameInput.trim().toLowerCase();
+    if (!username) {
+      setError("Enter a Hive username.");
+      return;
+    }
+
+    if (!window.hive_keychain) {
+      setError("Hive Keychain was not found in this browser.");
+      return;
+    }
+
+    try {
+      const challenge = await api<{ nonce: string; tx: Record<string, unknown> }>(
+        "/api/auth/challenge",
+        {
+          method: "POST",
+          body: JSON.stringify({ username }),
+        },
+      );
+
+      const signedTx = await new Promise<Record<string, unknown>>((resolve, reject) => {
+        window.hive_keychain!.requestSignTx(username, challenge.tx, "Posting", (response) => {
+          if (response.success && response.result) {
+            resolve(response.result);
+            return;
+          }
+          reject(new Error(response.error || "The login challenge signature was cancelled."));
+        });
+      });
+
+      const verified = await api<{ token: string; username: string }>(
+        "/api/auth/verify",
+        {
+          method: "POST",
+          body: JSON.stringify({ username, nonce: challenge.nonce, signedTx }),
+        },
+      );
+
+      window.localStorage.setItem(TOKEN_KEY, verified.token);
+      window.localStorage.setItem(USERNAME_KEY, verified.username);
+      setToken(verified.token);
+      setUsername(verified.username);
+      setStatus(`Connected as @${verified.username}.`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Login failed.");
+    }
+  }
+
+  function logout() {
+    window.localStorage.removeItem(TOKEN_KEY);
+    window.localStorage.removeItem(USERNAME_KEY);
+    setToken(null);
+    setUsername(null);
+    setStatus("Session cleared.");
+  }
+
+  async function joinGame() {
+    try {
+      const payload = await api<{ game: PublicGame }>(`/api/games/${gameId}/join`, { method: "POST", body: JSON.stringify({}) }, token);
+      setGame(payload.game);
+      setStatus("You joined the game.");
+      setError(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not join game.");
+    }
+  }
+
+  async function cancelGame() {
+    if (!game) {
+      return;
+    }
+
+    try {
+      const payload = await api<{ game: PublicGame }>(`/api/games/${game.id}/abort`, { method: "POST", body: JSON.stringify({}) }, token);
+      setGame(payload.game);
+      setStatus("Game cancelled. Any confirmed stake is now on the refund path.");
+      setError(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not cancel game.");
+    }
+  }
+
+  async function leaveGame() {
+    if (!game) {
+      return;
+    }
+
+    try {
+      const payload = await api<{ game: PublicGame }>(`/api/games/${game.id}/leave`, { method: "POST", body: JSON.stringify({}) }, token);
+      setGame(payload.game);
+      setStatus("Game left. Any confirmed stake is now on the refund path.");
+      setError(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not leave game.");
+    }
+  }
+
+  function onPieceDrop(sourceSquare: string, targetSquare: string) {
+    if (!game || !token) {
+      return false;
+    }
+
+    const local = new Chess(game.fen);
+    const move = local.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
+    if (!move) {
+      return false;
+    }
+
+    setGame({
+      ...game,
+      fen: local.fen(),
+      pgn: local.pgn(),
+      turn: local.turn(),
+      moves: [
+        ...game.moves,
+        {
+          by: username || "",
+          color: move.color,
+          from: move.from,
+          to: move.to,
+          san: move.san,
+          fen: local.fen(),
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      clockSnapshotAt: new Date().toISOString(),
+    });
+
+    void api<{ game: PublicGame }>(
+      `/api/games/${game.id}/move`,
+      {
+        method: "POST",
+        body: JSON.stringify({ from: sourceSquare, to: targetSquare, promotion: "q" }),
+      },
+      token,
+    )
+      .then((payload) => {
+        setGame(payload.game);
+        setError(null);
+      })
+      .catch(async (requestError) => {
+        setError(requestError instanceof Error ? requestError.message : "Move failed.");
+        try {
+          const fallback = await api<{ game: PublicGame }>(`/api/games/${game.id}`, { method: "GET" }, token);
+          setGame(fallback.game);
+        } catch {
+          // Ignore fallback failure.
+        }
+      });
+
+    return true;
+  }
+
+  function payStake() {
+    if (!game || !username || !window.hive_keychain) {
+      return;
+    }
+
+    const memo = `stake:${game.id}:${username}`;
+    setStakeMemo(memo);
+    window.hive_keychain.requestTransfer(
+      username,
+      game.stake.escrowAccount,
+      Number(game.stake.amount).toFixed(3),
+      memo,
+      "HIVE",
+      (response) => {
+        if (!response.success) {
+          setError(response.error || "Stake transfer cancelled.");
+          return;
+        }
+        setStatus("Transfer approved. Now click Verify stake.");
+      },
+      true,
+    );
+  }
+
+  async function verifyStake() {
+    if (!game || !stakeMemo.trim()) {
+      return;
+    }
+
+    try {
+      const payload = await api<{ game: PublicGame }>(
+        `/api/games/${game.id}/stake`,
+        {
+          method: "POST",
+          body: JSON.stringify({ memo: stakeMemo.trim() }),
+        },
+        token,
+      );
+      setGame(payload.game);
+      setStatus("Stake confirmed on Hive.");
+      setError(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Stake verification failed.");
+    }
+  }
+
+  return (
+    <main className="page-shell">
+      <div className="topbar">
+        <div>
+          <div className="section-eyebrow">Game Room</div>
+          <div className="topbar-title">Board {game?.inviteCode || gameId}</div>
+        </div>
+        <div className="topbar-actions">
+          <div className="subtle topbar-status">{status}</div>
+          <a className="ghost link-button" href="/">
+            Back to lobby
+          </a>
+        </div>
+      </div>
+
+      <section className="game-layout page-game-layout">
+        <div className="panel board-wrap">
+          {!game ? (
+            <div className="subtle">Loading game...</div>
+          ) : (
+            <>
+              <div className="clock-row">
+                <div className={`clock ${game.turn === "b" && game.status === "active" ? "active" : ""}`}>
+                  <div className="clock-label">
+                    Black @{game.black || "waiting"}
+                    {game.blackRating ? ` (${game.blackRating})` : ""}
+                  </div>
+                  <div className="clock-time">{formatMs(displayTimes.black)}</div>
+                </div>
+                <div className={`clock ${game.turn === "w" && game.status === "active" ? "active" : ""}`}>
+                  <div className="clock-label">
+                    White @{game.white}
+                    {game.whiteRating ? ` (${game.whiteRating})` : ""}
+                  </div>
+                  <div className="clock-time">{formatMs(displayTimes.white)}</div>
+                </div>
+              </div>
+
+              <div className="board-stage">
+                <Chessboard
+                  id="snapchess-board"
+                  position={game.fen}
+                  boardWidth={720}
+                  boardOrientation={myColor === "black" ? "black" : "white"}
+                  arePiecesDraggable={Boolean(canMove)}
+                  onPieceDrop={onPieceDrop}
+                  customDarkSquareStyle={{ backgroundColor: "#214063" }}
+                  customLightSquareStyle={{ backgroundColor: "#dcecff" }}
+                />
+              </div>
+
+              {game.result ? <div className="status-box success">{game.result.message}</div> : null}
+            </>
+          )}
+        </div>
+
+        <div className="stack">
+          <div className="panel">
+            <div className="panel-heading">
+              <h2>Moves</h2>
+              <span className="panel-hint">Live notation</span>
+            </div>
+            <div className="move-list">
+              {game?.moves.length ? null : <div className="subtle">No moves yet.</div>}
+              {game?.moves.map((move, index) => (
+                <div className="move-cell" key={`${move.createdAt}-${move.san}`}>
+                  {index + 1}. {move.san}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-heading">
+              <h2>Table</h2>
+              <span className="panel-hint">Match summary</span>
+            </div>
+            <div className="button-row compact-actions">
+              <button className="ghost small-button" onClick={() => setTableCollapsed((value) => !value)}>
+                {tableCollapsed ? "Expand table" : "Collapse table"}
+              </button>
+              {canJoin ? (
+                <button className="secondary small-button" onClick={joinGame}>
+                  Join game
+                </button>
+              ) : null}
+              {canAbort ? (
+                <button className="danger small-button" onClick={cancelGame}>
+                  Cancel game
+                </button>
+              ) : null}
+              {canLeave ? (
+                <button className="ghost small-button" onClick={leaveGame}>
+                  Leave game
+                </button>
+              ) : null}
+            </div>
+
+            {!tableCollapsed ? (
+              <>
+                <div className="status-box top-gap">
+                  <div>
+                    <strong>Mode:</strong> {game?.rated ? "Rated" : "Casual"}
+                  </div>
+                  <div>
+                    <strong>Invite code:</strong> <span className="mono">{game?.inviteCode || gameId}</span>
+                  </div>
+                  <div>
+                    <strong>Share link:</strong> <span className="mono">{sharePath}</span>
+                  </div>
+                  <div>
+                    <strong>Status:</strong> {game?.status || "loading"}
+                  </div>
+                  <div>
+                    <strong>Abort window:</strong> {game?.isAbortable ? "Open" : "Closed"}
+                  </div>
+                  {game?.result?.ratingDelta ? (
+                    <div>
+                      <strong>Rating:</strong> White {game.result.ratingDelta.white >= 0 ? "+" : ""}
+                      {game.result.ratingDelta.white}, Black {game.result.ratingDelta.black >= 0 ? "+" : ""}
+                      {game.result.ratingDelta.black}
+                    </div>
+                  ) : null}
+                  {game?.result?.stakeDeltaHive ? (
+                    <div>
+                      <strong>Stake result:</strong> White {game.result.stakeDeltaHive.white >= 0 ? "+" : ""}
+                      {game.result.stakeDeltaHive.white.toFixed(3)} HIVE, Black {game.result.stakeDeltaHive.black >= 0 ? "+" : ""}
+                      {game.result.stakeDeltaHive.black.toFixed(3)} HIVE
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="divider" />
+
+                <div className="form-grid">
+                  <div className="field">
+                    <label>Hive username</label>
+                    <input value={usernameInput} onChange={(event) => setUsernameInput(event.target.value)} placeholder="meno" />
+                  </div>
+                  <div className="button-row">
+                    <button className="primary" onClick={loginWithKeychain}>
+                      Connect Hive Keychain
+                    </button>
+                    <button className="ghost" onClick={logout} disabled={!token}>
+                      Log out
+                    </button>
+                  </div>
+                  <div className="inline-note subtle">
+                    User: <span className="mono">{username ? `@${username}` : "guest"}</span>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+
+          {game?.stake.amount ? (
+            <div className="panel">
+              <div className="panel-heading">
+                <h2>Stake</h2>
+                <span className="panel-hint">On-chain confirmation</span>
+              </div>
+              <div className="inline-note">
+                Stake: <strong>{game.stake.amount.toFixed(3)} HIVE</strong> to <span className="mono">{game.stake.escrowAccount}</span>
+              </div>
+              <div className="status-box top-gap">
+                <div>
+                  <strong>Hold status:</strong> {game.stake.settlementStatus}
+                </div>
+                <div>
+                  <strong>Settlement:</strong> {game.stake.settlementMemo || "Stake is not funded yet."}
+                </div>
+                {game.stake.payoutTxId ? (
+                  <div>
+                    <strong>Payout tx:</strong> <span className="mono">{game.stake.payoutTxId}</span>
+                  </div>
+                ) : null}
+                {game.stake.whiteRefundTxId ? (
+                  <div>
+                    <strong>White refund tx:</strong> <span className="mono">{game.stake.whiteRefundTxId}</span>
+                  </div>
+                ) : null}
+                {game.stake.blackRefundTxId ? (
+                  <div>
+                    <strong>Black refund tx:</strong> <span className="mono">{game.stake.blackRefundTxId}</span>
+                  </div>
+                ) : null}
+              </div>
+              <div className="form-grid top-gap">
+                <div className="field">
+                  <label>Stake memo</label>
+                  <input value={stakeMemo} onChange={(event) => setStakeMemo(event.target.value)} placeholder={`stake:${game.id}:${username || "user"}`} />
+                </div>
+                <div className="button-row">
+                  <button className="secondary" onClick={payStake} disabled={!myColor}>
+                    Pay stake
+                  </button>
+                  <button className="ghost" onClick={verifyStake} disabled={!myColor || !stakeMemo.trim()}>
+                    Verify stake
+                  </button>
+                </div>
+                <div className="subtle">white funded: {game.stake.whiteConfirmed ? "yes" : "no"}</div>
+                <div className="subtle">black funded: {game.stake.blackConfirmed ? "yes" : "no"}</div>
+                <div className="inline-note subtle">
+                  Stake flow: players transfer HIVE into the escrow account. Funds stay held until the game ends. If both sides have not committed moves yet, cancel/leave sends the game into refund settlement and no rating is applied.
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {error ? <div className="status-box error">{error}</div> : null}
+        </div>
+      </section>
+    </main>
+  );
+}
