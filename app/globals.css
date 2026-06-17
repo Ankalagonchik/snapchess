@@ -445,13 +445,14 @@ select {
 
 .clock-label {
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.8rem;
 }
 
 .clock-time {
-  margin-top: 6px;
+  margin-top: 4px;
   font-weight: 800;
-  font-size: clamp(1.3rem, 4vw, 2.15rem);
+  font-size: clamp(1rem, 2.2vw, 1.45rem);
+  line-height: 1;
 }
 
 .list {
