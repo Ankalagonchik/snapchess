@@ -3,9 +3,12 @@ import { randomUUID } from "crypto";
 import { jsonError, requireUsername } from "@/lib/api";
 import { createGame, maybeExpireOnClock, parseTimeControl, serializeGame } from "@/lib/game";
 import { getEscrowAccount } from "@/lib/hive";
-import { settleFinishedGame } from "@/lib/settlement";
-import { applyCompletedGameStats, buildLeaderboards, ensurePlayer, getGameRatings, getPlayerStats } from "@/lib/stats";
-import { mutateState } from "@/lib/store";
+import { buildLeaderboards, ensurePlayer, getGameRatings, toLeaderboardEntry } from "@/lib/stats";
+import { mutateState, readState } from "@/lib/store";
+
+function cloneGame<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
 
 export async function GET(request: Request) {
   let username: string | null = null;
@@ -16,36 +19,36 @@ export async function GET(request: Request) {
     username = null;
   }
 
-  const state = await mutateState(async (draft) => {
-    if (username) {
-      ensurePlayer(draft, username);
-    }
-    for (const game of draft.games) {
-      maybeExpireOnClock(game);
-      applyCompletedGameStats(draft, game);
-      await settleFinishedGame(game);
-    }
-    return draft;
-  });
+  const state = await readState();
 
   const openGames = state.games
     .filter((game) => ["waiting", "awaiting-stakes"].includes(game.status) && !game.black)
     .slice()
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-    .map((game) => serializeGame(game, new Date(), getGameRatings(state, game)));
+    .map((game) => {
+      const snapshot = cloneGame(game);
+      maybeExpireOnClock(snapshot);
+      return serializeGame(snapshot, new Date(), getGameRatings(state, game));
+    });
 
   const myGames = username
     ? state.games
         .filter((game) => game.white === username || game.black === username)
         .slice()
         .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-        .map((game) => serializeGame(game, new Date(), getGameRatings(state, game)))
+        .map((game) => {
+          const snapshot = cloneGame(game);
+          maybeExpireOnClock(snapshot);
+          return serializeGame(snapshot, new Date(), getGameRatings(state, game));
+        })
     : [];
+
+  const me = username ? state.players.find((entry) => entry.username === username) : null;
 
   return Response.json({
     openGames,
     myGames,
-    me: getPlayerStats(state, username),
+    me: me ? toLeaderboardEntry(me) : null,
     leaderboards: buildLeaderboards(state),
   });
 }
