@@ -445,11 +445,14 @@ select {
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) 400px;
+  align-items: start;
 }
 
 .board-wrap {
   display: grid;
   gap: 8px;
+  align-content: start;
+  align-self: start;
 }
 
 .board-stage {
@@ -693,6 +696,7 @@ select {
 .result-banner {
   padding: 8px 10px;
   font-size: 0.86rem;
+  align-self: start;
 }
 
 .list {
