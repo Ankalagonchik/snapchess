@@ -105,7 +105,7 @@ select {
 }
 
 .topbar-status {
-  max-width: 420px;
+  max-width: 280px;
   text-align: right;
 }
 
@@ -448,7 +448,7 @@ select {
 .game-layout {
   display: grid;
   gap: 12px;
-  grid-template-columns: 190px minmax(0, 1fr) 280px;
+  grid-template-columns: 170px minmax(0, 1fr) 250px;
   align-items: start;
 }
 
@@ -465,12 +465,12 @@ select {
 }
 
 .game-summary-card {
-  padding: 14px;
+  padding: 12px;
 }
 
 .game-summary-title {
   margin-top: 6px;
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: #edf3ff;
 }
@@ -478,8 +478,8 @@ select {
 .game-summary-line {
   margin-top: 6px;
   color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.35;
+  font-size: 0.78rem;
+  line-height: 1.28;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -491,8 +491,8 @@ select {
 
 .compact-table-box {
   display: grid;
-  gap: 4px;
-  font-size: 0.84rem;
+  gap: 3px;
+  font-size: 0.78rem;
 }
 
 .board-column {
@@ -576,7 +576,7 @@ select {
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
   color: #d0d1d4;
-  font-size: clamp(1.55rem, 1.9vw, 2.3rem);
+  font-size: clamp(1.35rem, 1.6vw, 2rem);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -619,7 +619,7 @@ select {
 }
 
 .notation-table {
-  max-height: 360px;
+  max-height: 330px;
   overflow: auto;
 }
 
@@ -746,7 +746,7 @@ select {
 
 .result-banner {
   padding: 6px 8px;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   align-self: start;
 }
 

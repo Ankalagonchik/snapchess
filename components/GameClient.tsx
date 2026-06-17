@@ -498,32 +498,17 @@ export function GameClient({ gameId }: { gameId: string }) {
             {!tableCollapsed ? (
               <>
                 <div className="status-box top-gap compact-table-box">
-                  <div>
-                    <strong>Mode:</strong> {game?.rated ? "Rated" : "Casual"}
-                  </div>
-                  <div>
-                    <strong>Window:</strong> {game?.isAbortable ? "Abortable" : "Locked"}
-                  </div>
+                  <div><strong>Mode:</strong> {game?.rated ? "Rated" : "Casual"}</div>
+                  <div><strong>Window:</strong> {game?.isAbortable ? "Abortable" : "Locked"}</div>
                   {game?.result?.ratingDelta ? (
-                    <div>
-                      <strong>Rating:</strong> White {game.result.ratingDelta.white >= 0 ? "+" : ""}
-                      {game.result.ratingDelta.white}, Black {game.result.ratingDelta.black >= 0 ? "+" : ""}
-                      {game.result.ratingDelta.black}
-                    </div>
+                    <div><strong>Rating:</strong> W {game.result.ratingDelta.white >= 0 ? "+" : ""}{game.result.ratingDelta.white}, B {game.result.ratingDelta.black >= 0 ? "+" : ""}{game.result.ratingDelta.black}</div>
                   ) : null}
                   {game?.result?.stakeDeltaHive ? (
-                    <div>
-                      <strong>Stake result:</strong> White {game.result.stakeDeltaHive.white >= 0 ? "+" : ""}
-                      {game.result.stakeDeltaHive.white.toFixed(3)} HIVE, Black {game.result.stakeDeltaHive.black >= 0 ? "+" : ""}
-                      {game.result.stakeDeltaHive.black.toFixed(3)} HIVE
-                    </div>
+                    <div><strong>Stake:</strong> W {game.result.stakeDeltaHive.white >= 0 ? "+" : ""}{game.result.stakeDeltaHive.white.toFixed(3)}, B {game.result.stakeDeltaHive.black >= 0 ? "+" : ""}{game.result.stakeDeltaHive.black.toFixed(3)}</div>
                   ) : null}
                 </div>
 
-                <div className="divider" />
-                <div className="inline-note subtle compact-auth-row">
-                  Player session: <span className="mono">{username ? `@${username}` : "guest"}</span>
-                </div>
+                <div className="inline-note subtle compact-auth-row">Session: <span className="mono">{username ? `@${username}` : "guest"}</span></div>
               </>
             ) : null}
           </div>
@@ -538,30 +523,10 @@ export function GameClient({ gameId }: { gameId: string }) {
                 Stake: <strong>{game.stake.amount.toFixed(3)} HIVE</strong> to <span className="mono">{game.stake.escrowAccount}</span>
               </div>
               <div className="status-box top-gap compact-table-box">
-                <div>
-                  <strong>Fee:</strong> 4% of the total pot, minimum 0.002 HIVE, retained by @{game.stake.escrowAccount}
-                </div>
-                <div>
-                  <strong>Hold status:</strong> {game.stake.settlementStatus}
-                </div>
-                <div>
-                  <strong>Settlement:</strong> {game.stake.settlementMemo || "Not funded yet."}
-                </div>
-                {game.stake.payoutTxId ? (
-                  <div>
-                    <strong>Payout tx:</strong> <span className="mono">{game.stake.payoutTxId}</span>
-                  </div>
-                ) : null}
-                {game.stake.whiteRefundTxId ? (
-                  <div>
-                    <strong>White refund tx:</strong> <span className="mono">{game.stake.whiteRefundTxId}</span>
-                  </div>
-                ) : null}
-                {game.stake.blackRefundTxId ? (
-                  <div>
-                    <strong>Black refund tx:</strong> <span className="mono">{game.stake.blackRefundTxId}</span>
-                  </div>
-                ) : null}
+                <div><strong>Fee:</strong> 4%, min 0.002</div>
+                <div><strong>Hold:</strong> {game.stake.settlementStatus}</div>
+                <div><strong>White:</strong> {game.stake.whiteConfirmed ? "funded" : "pending"}</div>
+                <div><strong>Black:</strong> {game.stake.blackConfirmed ? "funded" : "pending"}</div>
               </div>
               <div className="form-grid top-gap">
                 <div className="field">
@@ -576,8 +541,6 @@ export function GameClient({ gameId }: { gameId: string }) {
                     {stakeVerifying ? "Verifying..." : "Verify stake"}
                   </button>
                 </div>
-                <div className="subtle">white funded: {game.stake.whiteConfirmed ? "yes" : "no"}</div>
-                <div className="subtle">black funded: {game.stake.blackConfirmed ? "yes" : "no"}</div>
               </div>
             </div>
           ) : null}
