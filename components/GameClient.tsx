@@ -133,7 +133,7 @@ export function GameClient({ gameId }: { gameId: string }) {
     }
 
     const update = () => {
-      const nextWidth = Math.max(260, Math.min(720, Math.floor(element.clientWidth - 28)));
+      const nextWidth = Math.max(260, Math.min(860, Math.floor(element.clientWidth - 12)));
       setBoardWidth(nextWidth);
     };
 
@@ -147,7 +147,7 @@ export function GameClient({ gameId }: { gameId: string }) {
       observer.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [game?.id]);
 
   useEffect(() => {
     if (game && username) {
@@ -463,7 +463,7 @@ export function GameClient({ gameId }: { gameId: string }) {
                 </div>
               </div>
 
-              {game.result ? <div className="status-box success">{game.result.message}</div> : null}
+              {game.result ? <div className="status-box success result-banner">{game.result.message}</div> : null}
             </>
           )}
         </div>
