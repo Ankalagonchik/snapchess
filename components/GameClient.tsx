@@ -6,6 +6,10 @@ import { Chessboard } from "react-chessboard";
 
 import type { PublicGame } from "@/lib/types";
 
+function getStakeMemo(gameId: string, username: string) {
+  return `stake:${gameId}:${username.trim().toLowerCase()}`;
+}
+
 const TOKEN_KEY = "snapchess.token";
 const USERNAME_KEY = "snapchess.username";
 
@@ -98,6 +102,7 @@ export function GameClient({ gameId }: { gameId: string }) {
   const [tableCollapsed, setTableCollapsed] = useState(false);
   const [tick, setTick] = useState(0);
   const [boardWidth, setBoardWidth] = useState(720);
+  const [stakeVerifying, setStakeVerifying] = useState(false);
 
   const myColor = getMyColor(game, username);
   const displayTimes = useMemo(() => getLiveDisplayTimes(game), [game, tick]);
@@ -143,6 +148,12 @@ export function GameClient({ gameId }: { gameId: string }) {
       window.removeEventListener("resize", update);
     };
   }, []);
+
+  useEffect(() => {
+    if (game && username) {
+      setStakeMemo(getStakeMemo(game.id, username));
+    }
+  }, [game?.id, username]);
 
   useEffect(() => {
     let active = true;
@@ -330,7 +341,7 @@ export function GameClient({ gameId }: { gameId: string }) {
       return;
     }
 
-    const memo = `stake:${game.id}:${username}`;
+    const memo = getStakeMemo(game.id, username);
     setStakeMemo(memo);
     window.hive_keychain.requestTransfer(
       username,
@@ -343,23 +354,31 @@ export function GameClient({ gameId }: { gameId: string }) {
           setError(response.error || "Stake transfer cancelled.");
           return;
         }
-        setStatus("Transfer approved. Now click Verify stake.");
+        setStatus("Transfer approved. Waiting for blockchain confirmation...");
+        void verifyStake(memo, true);
       },
       true,
     );
   }
 
-  async function verifyStake() {
-    if (!game || !stakeMemo.trim()) {
+  async function verifyStake(forcedMemo?: string, silent = false) {
+    if (!game) {
       return;
     }
+
+    const memo = forcedMemo || stakeMemo.trim();
+    if (!memo) {
+      return;
+    }
+
+    setStakeVerifying(true);
 
     try {
       const payload = await api<{ game: PublicGame }>(
         `/api/games/${game.id}/stake`,
         {
           method: "POST",
-          body: JSON.stringify({ memo: stakeMemo.trim() }),
+          body: JSON.stringify({ memo }),
         },
         token,
       );
@@ -367,7 +386,14 @@ export function GameClient({ gameId }: { gameId: string }) {
       setStatus("Stake confirmed on Hive.");
       setError(null);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Stake verification failed.");
+      const message = requestError instanceof Error ? requestError.message : "Stake verification failed.";
+      if (!silent || !message.includes("not found yet")) {
+        setError(message);
+      } else {
+        setStatus("Still waiting for the stake transfer to appear on-chain...");
+      }
+    } finally {
+      setStakeVerifying(false);
     }
   }
 
@@ -570,8 +596,8 @@ export function GameClient({ gameId }: { gameId: string }) {
                   <button className="secondary" onClick={payStake} disabled={!myColor}>
                     Pay stake
                   </button>
-                  <button className="ghost" onClick={verifyStake} disabled={!myColor || !stakeMemo.trim()}>
-                    Verify stake
+                  <button className="ghost" onClick={() => void verifyStake()} disabled={!myColor || !stakeMemo.trim() || stakeVerifying}>
+                    {stakeVerifying ? "Verifying..." : "Verify stake"}
                   </button>
                 </div>
                 <div className="subtle">white funded: {game.stake.whiteConfirmed ? "yes" : "no"}</div>

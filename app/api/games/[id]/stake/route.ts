@@ -1,6 +1,6 @@
 import { jsonError, requireUsername } from "@/lib/api";
 import { activateWhenReady, getPlayerColor, serializeGame } from "@/lib/game";
-import { verifyStakeTransfer } from "@/lib/hive";
+import { getStakeMemo, verifyStakeTransfer } from "@/lib/hive";
 import { ensurePlayer, getGameRatings } from "@/lib/stats";
 import { mutateState } from "@/lib/store";
 
@@ -38,12 +38,15 @@ export async function POST(request: Request, context: { params: { id: string } }
         ensurePlayer(state, game.black);
       }
 
-      const confirmed = await verifyStakeTransfer({
+      const confirmed = await verifyStakeTransfer(
+        {
         from: username,
         to: game.stake.escrowAccount,
         amount: game.stake.amount,
         memo,
-      });
+        },
+        { attempts: 6, delayMs: 1500 },
+      );
       if (!confirmed) {
         throw new Error("TRANSFER_NOT_FOUND");
       }

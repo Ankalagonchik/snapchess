@@ -21,6 +21,10 @@ export function getEscrowAccount() {
   return process.env.NEXT_PUBLIC_HIVE_ESCROW_ACCOUNT || "snapchess.escrow";
 }
 
+export function getStakeMemo(gameId: string, username: string) {
+  return `stake:${gameId}:${username.trim().toLowerCase()}`;
+}
+
 export async function transferFromEscrow(input: { to: string; amount: number; memo: string }) {
   const activeKey = getEscrowActiveKey();
   if (!activeKey) {
@@ -135,7 +139,7 @@ function unpackTransferOperation(op: unknown): {
   return null;
 }
 
-export async function verifyStakeTransfer(input: {
+async function hasMatchingStakeTransfer(input: {
   from: string;
   to: string;
   amount: number;
@@ -157,4 +161,33 @@ export async function verifyStakeTransfer(input: {
       transfer.memo === input.memo
     );
   });
+}
+
+export async function verifyStakeTransfer(
+  input: {
+    from: string;
+    to: string;
+    amount: number;
+    memo: string;
+  },
+  options?: {
+    attempts?: number;
+    delayMs?: number;
+  },
+) {
+  const attempts = options?.attempts ?? 5;
+  const delayMs = options?.delayMs ?? 1500;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const confirmed = await hasMatchingStakeTransfer(input);
+    if (confirmed) {
+      return true;
+    }
+
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return false;
 }
