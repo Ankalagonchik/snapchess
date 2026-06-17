@@ -56,6 +56,26 @@ function getLiveDisplayTimes(game: PublicGame | null) {
   };
 }
 
+function buildMoveRows(game: PublicGame | null) {
+  if (!game) {
+    return [] as Array<{ moveNumber: number; white?: string; black?: string }>;
+  }
+
+  const rows: Array<{ moveNumber: number; white?: string; black?: string }> = [];
+
+  for (let index = 0; index < game.moves.length; index += 1) {
+    const whiteMove = game.moves[index];
+    const blackMove = game.moves[index + 1];
+    rows.push({
+      moveNumber: Math.floor(index / 2) + 1,
+      white: whiteMove?.san,
+      black: blackMove?.san,
+    });
+  }
+
+  return rows;
+}
+
 async function api<T>(url: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set("content-type", "application/json");
@@ -106,6 +126,7 @@ export function GameClient({ gameId }: { gameId: string }) {
 
   const myColor = getMyColor(game, username);
   const displayTimes = useMemo(() => getLiveDisplayTimes(game), [game, tick]);
+  const moveRows = useMemo(() => buildMoveRows(game), [game]);
   const canMove = game && game.status === "active" && ((game.turn === "w" && myColor === "white") || (game.turn === "b" && myColor === "black"));
   const canJoin = Boolean(game && username && game.white !== username && !game.black);
   const canAbort = Boolean(game && username && game.createdBy === username && game.isAbortable && game.status !== "finished");
@@ -133,7 +154,8 @@ export function GameClient({ gameId }: { gameId: string }) {
     }
 
     const update = () => {
-      const nextWidth = Math.max(260, Math.min(860, Math.floor(element.clientWidth - 12)));
+      const viewportCap = typeof window === "undefined" ? 860 : Math.max(280, Math.floor(window.innerHeight - 170));
+      const nextWidth = Math.max(260, Math.min(900, Math.min(Math.floor(element.clientWidth - 8), viewportCap)));
       setBoardWidth(nextWidth);
     };
 
@@ -413,27 +435,11 @@ export function GameClient({ gameId }: { gameId: string }) {
       </div>
 
       <section className="game-layout page-game-layout">
-        <div className="panel board-wrap">
+        <div className="panel board-wrap board-panel">
           {!game ? (
             <div className="subtle">Loading game...</div>
           ) : (
             <>
-              <div className={`player-rack ${game.turn === "b" && game.status === "active" ? "active" : ""}`}>
-                <div className="player-rack-main">
-                  <div className="player-avatar dark">B</div>
-                  <div className="player-meta">
-                    <div className="player-name">
-                      @{game.black || "waiting"}
-                      {game.blackRating ? <span className="player-rating">{game.blackRating}</span> : null}
-                    </div>
-                    <div className="player-subtle">Black pieces</div>
-                  </div>
-                </div>
-                <div className="clock compact-clock">
-                  <div className="clock-time">{formatMs(displayTimes.black)}</div>
-                </div>
-              </div>
-
               <div className="board-stage" ref={boardStageRef}>
                 <Chessboard
                   id="snapchess-board"
@@ -442,25 +448,9 @@ export function GameClient({ gameId }: { gameId: string }) {
                   boardOrientation={myColor === "black" ? "black" : "white"}
                   arePiecesDraggable={Boolean(canMove)}
                   onPieceDrop={onPieceDrop}
-                  customDarkSquareStyle={{ backgroundColor: "#214063" }}
-                  customLightSquareStyle={{ backgroundColor: "#dcecff" }}
+                  customDarkSquareStyle={{ backgroundColor: "#8754a0" }}
+                  customLightSquareStyle={{ backgroundColor: "#a99aba" }}
                 />
-              </div>
-
-              <div className={`player-rack ${game.turn === "w" && game.status === "active" ? "active" : ""}`}>
-                <div className="player-rack-main">
-                  <div className="player-avatar light">W</div>
-                  <div className="player-meta">
-                    <div className="player-name">
-                      @{game.white}
-                      {game.whiteRating ? <span className="player-rating">{game.whiteRating}</span> : null}
-                    </div>
-                    <div className="player-subtle">White pieces</div>
-                  </div>
-                </div>
-                <div className="clock compact-clock">
-                  <div className="clock-time">{formatMs(displayTimes.white)}</div>
-                </div>
               </div>
 
               {game.result ? <div className="status-box success result-banner">{game.result.message}</div> : null}
@@ -468,20 +458,44 @@ export function GameClient({ gameId }: { gameId: string }) {
           )}
         </div>
 
-        <div className="stack">
-          <div className="panel">
-            <div className="panel-heading">
-              <h2>Moves</h2>
-              <span className="panel-hint">Live notation</span>
+        <div className="stack game-rail">
+          <div className={`player-card top ${game?.turn === "b" && game?.status === "active" ? "active" : ""}`}>
+            <div className="player-card-header">
+              <div className="player-card-name-row">
+                <span className="presence-dot" />
+                <span className="player-card-title">@{game?.black || "waiting"}</span>
+                {game?.blackRating ? <span className="player-card-rating">{game.blackRating}</span> : null}
+              </div>
             </div>
-            <div className="move-list">
-              {game?.moves.length ? null : <div className="subtle">No moves yet.</div>}
-              {game?.moves.map((move, index) => (
-                <div className="move-cell" key={`${move.createdAt}-${move.san}`}>
-                  {index + 1}. {move.san}
+            <div className="rail-clock">{formatMs(displayTimes.black)}</div>
+          </div>
+
+          <div className="panel notation-panel">
+            <div className="notation-toolbar">
+              <span className="panel-hint">Moves</span>
+              <span className="panel-hint mono">{game?.inviteCode || gameId}</span>
+            </div>
+            <div className="notation-list">
+              {moveRows.length === 0 ? <div className="empty-state subtle">No moves yet.</div> : null}
+              {moveRows.map((row) => (
+                <div className="notation-row" key={`move-row-${row.moveNumber}`}>
+                  <div className="notation-index">{row.moveNumber}</div>
+                  <div className="notation-move">{row.white || ""}</div>
+                  <div className="notation-move emphasis">{row.black || ""}</div>
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className={`player-card bottom ${game?.turn === "w" && game?.status === "active" ? "active" : ""}`}>
+            <div className="player-card-header">
+              <div className="player-card-name-row">
+                <span className="presence-dot" />
+                <span className="player-card-title">@{game?.white || "waiting"}</span>
+                {game?.whiteRating ? <span className="player-card-rating">{game.whiteRating}</span> : null}
+              </div>
+            </div>
+            <div className="rail-clock">{formatMs(displayTimes.white)}</div>
           </div>
 
           <div className="panel">
