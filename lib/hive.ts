@@ -122,7 +122,7 @@ async function callAccountHistory(account: string, limit = 200) {
 function unpackTransferOperation(op: unknown): {
   from: string;
   to: string;
-  amount: string;
+  amount: string | { amount: string; precision: number; nai: string };
   memo: string;
 } | null {
   if (Array.isArray(op) && op[0] === "transfer") {
@@ -137,6 +137,18 @@ function unpackTransferOperation(op: unknown): {
   }
 
   return null;
+}
+
+function normalizeHiveAmount(value: string | { amount: string; precision: number; nai: string }) {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  const padded = value.amount.padStart(value.precision + 1, "0");
+  const whole = padded.slice(0, -value.precision) || "0";
+  const fraction = padded.slice(-value.precision);
+  const symbol = value.nai === "@@000000021" ? "HIVE" : value.nai === "@@000000013" ? "HBD" : value.nai;
+  return `${whole}.${fraction} ${symbol}`;
 }
 
 async function hasMatchingStakeTransfer(input: {
@@ -154,10 +166,12 @@ async function hasMatchingStakeTransfer(input: {
       return false;
     }
 
+    const normalizedAmount = normalizeHiveAmount(transfer.amount);
+
     return (
       transfer.from === input.from &&
       transfer.to === input.to &&
-      transfer.amount === expectedAmount &&
+      normalizedAmount === expectedAmount &&
       transfer.memo === input.memo
     );
   });
