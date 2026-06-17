@@ -1,36 +1,26 @@
-import { createSessionToken } from "@/lib/auth";
+import { createSessionToken, readChallengeToken } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
 import { verifySignedTx } from "@/lib/hive";
-import { mutateState } from "@/lib/store";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     username?: string;
-    nonce?: string;
+    challengeToken?: string;
     signedTx?: Record<string, unknown>;
   };
 
   const username = body.username?.trim().toLowerCase();
-  const nonce = body.nonce?.trim();
+  const challengeToken = body.challengeToken;
   const signedTx = body.signedTx;
 
-  if (!username || !nonce || !signedTx) {
-    return jsonError("username, nonce and signedTx are required.");
+  if (!username || !challengeToken || !signedTx) {
+    return jsonError("username, challengeToken and signedTx are required.");
   }
 
-  const challenge = await mutateState((state) => {
-    const found = state.challenges.find(
-      (entry) => entry.username === username && entry.nonce === nonce && !entry.usedAt,
-    );
-    if (found && Date.parse(found.expiresAt) > Date.now()) {
-      found.usedAt = new Date().toISOString();
-      return found;
-    }
-    return null;
-  });
+  const challenge = readChallengeToken(challengeToken);
 
-  if (!challenge) {
-    return jsonError("Challenge expired or already used.", 400);
+  if (!challenge || challenge.username !== username) {
+    return jsonError("Challenge expired or invalid.", 400);
   }
 
   const signed = signedTx as {
@@ -47,9 +37,19 @@ export async function POST(request: Request) {
     return jsonError("The signed transaction does not belong to this user.");
   }
 
-  const expected = JSON.stringify((challenge.tx as { operations?: Array<[string, { json?: string }]> }).operations?.[0]?.[1]?.json);
-  const actual = JSON.stringify(operation[1]?.json);
-  if (expected !== actual) {
+  let operationPayload: { username?: string; nonce?: string; expiresAt?: string } | null = null;
+  try {
+    operationPayload = JSON.parse(operation[1]?.json || "null") as { username?: string; nonce?: string; expiresAt?: string };
+  } catch {
+    return jsonError("Challenge payload mismatch.");
+  }
+
+  if (
+    !operationPayload ||
+    operationPayload.username !== challenge.username ||
+    operationPayload.nonce !== challenge.nonce ||
+    operationPayload.expiresAt !== challenge.expiresAt
+  ) {
     return jsonError("Challenge payload mismatch.");
   }
 

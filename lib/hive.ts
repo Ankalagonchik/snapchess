@@ -45,21 +45,22 @@ export async function getAccount(username: string) {
   return accounts[0] ?? null;
 }
 
-export async function makeLoginChallengeTx(username: string, nonce: string) {
+export async function makeLoginChallengeTx(username: string, nonce: string, expiresAt?: string) {
   const props = await hiveClient.database.getDynamicGlobalProperties();
   const issuedAt = new Date();
-  const expiresAt = new Date(issuedAt.getTime() + 5 * 60 * 1000);
+  const computedExpiresAt = expiresAt ?? new Date(issuedAt.getTime() + 5 * 60 * 1000).toISOString();
   const json = JSON.stringify({
     app: "snapchess",
     nonce,
     username,
     issuedAt: issuedAt.toISOString(),
+    expiresAt: computedExpiresAt,
   });
 
   return {
     ref_block_num: props.head_block_number & 0xffff,
     ref_block_prefix: Buffer.from(props.head_block_id, "hex").readUInt32LE(4),
-    expiration: expiresAt.toISOString().replace(/\.\d{3}Z$/, ""),
+    expiration: computedExpiresAt.replace(/\.\d{3}Z$/, ""),
     operations: [
       [
         "custom_json",

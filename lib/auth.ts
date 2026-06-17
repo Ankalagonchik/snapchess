@@ -17,20 +17,13 @@ function signPayload(payload: string) {
   return createHmac("sha256", AUTH_SECRET).update(payload).digest("base64url");
 }
 
-export function createSessionToken(username: string) {
-  const now = new Date();
-  const payload: SessionPayload = {
-    username,
-    issuedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString(),
-  };
-
+function encodeSignedPayload<T>(payload: T) {
   const encoded = base64UrlEncode(JSON.stringify(payload));
   const signature = signPayload(encoded);
   return `${encoded}.${signature}`;
 }
 
-export function readSessionToken(token?: string | null): SessionPayload | null {
+function decodeSignedPayload<T>(token?: string | null): T | null {
   if (!token) {
     return null;
   }
@@ -49,16 +42,53 @@ export function readSessionToken(token?: string | null): SessionPayload | null {
   }
 
   try {
-    const payload = JSON.parse(base64UrlDecode(encoded)) as SessionPayload;
-    if (Date.parse(payload.expiresAt) <= Date.now()) {
-      return null;
-    }
-    return payload;
+    return JSON.parse(base64UrlDecode(encoded)) as T;
   } catch {
     return null;
   }
 }
 
+export function createSessionToken(username: string) {
+  const now = new Date();
+  const payload: SessionPayload = {
+    username,
+    issuedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString(),
+  };
+
+  return encodeSignedPayload(payload);
+}
+
+export function readSessionToken(token?: string | null): SessionPayload | null {
+  const payload = decodeSignedPayload<SessionPayload>(token);
+  if (!payload) {
+    return null;
+  }
+
+  if (Date.parse(payload.expiresAt) <= Date.now()) {
+    return null;
+  }
+
+  return payload;
+}
+
 export function makeNonce() {
   return randomUUID();
+}
+
+export function createChallengeToken(input: { username: string; nonce: string; expiresAt: string }) {
+  return encodeSignedPayload(input);
+}
+
+export function readChallengeToken(token?: string | null) {
+  const payload = decodeSignedPayload<{ username: string; nonce: string; expiresAt: string }>(token);
+  if (!payload) {
+    return null;
+  }
+
+  if (Date.parse(payload.expiresAt) <= Date.now()) {
+    return null;
+  }
+
+  return payload;
 }

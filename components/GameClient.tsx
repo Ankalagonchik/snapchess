@@ -159,7 +159,7 @@ export function GameClient({ gameId }: { gameId: string }) {
     }
 
     try {
-      const challenge = await api<{ nonce: string; tx: Record<string, unknown> }>(
+      const challenge = await api<{ challengeToken: string; tx: Record<string, unknown> }>(
         "/api/auth/challenge",
         {
           method: "POST",
@@ -181,7 +181,7 @@ export function GameClient({ gameId }: { gameId: string }) {
         "/api/auth/verify",
         {
           method: "POST",
-          body: JSON.stringify({ username, nonce: challenge.nonce, signedTx }),
+          body: JSON.stringify({ username, challengeToken: challenge.challengeToken, signedTx }),
         },
       );
 

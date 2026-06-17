@@ -1,7 +1,6 @@
-import { makeNonce } from "@/lib/auth";
+import { createChallengeToken, makeNonce } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
 import { getAccount, makeLoginChallengeTx } from "@/lib/hive";
-import { mutateState } from "@/lib/store";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { username?: string };
@@ -17,19 +16,9 @@ export async function POST(request: Request) {
   }
 
   const nonce = makeNonce();
-  const tx = await makeLoginChallengeTx(username, nonce);
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const tx = await makeLoginChallengeTx(username, nonce, expiresAt);
+  const challengeToken = createChallengeToken({ username, nonce, expiresAt });
 
-  await mutateState((state) => {
-    state.challenges = state.challenges.filter((challenge) => Date.parse(challenge.expiresAt) > Date.now());
-    state.challenges.push({
-      username,
-      nonce,
-      tx,
-      expiresAt,
-      createdAt: new Date().toISOString(),
-    });
-  });
-
-  return Response.json({ nonce, tx, expiresAt });
+  return Response.json({ nonce, tx, expiresAt, challengeToken });
 }
