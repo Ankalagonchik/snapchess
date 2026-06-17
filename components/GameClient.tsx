@@ -460,7 +460,7 @@ export function GameClient({ gameId }: { gameId: string }) {
 
         <div className="stack game-rail">
           <div className={`player-card top ${game?.turn === "b" && game?.status === "active" ? "active" : ""}`}>
-            <div className="player-card-header">
+            <div className="player-card-head">
               <div className="player-card-name-row">
                 <span className="presence-dot" />
                 <span className="player-card-title">@{game?.black || "waiting"}</span>
@@ -471,11 +471,11 @@ export function GameClient({ gameId }: { gameId: string }) {
           </div>
 
           <div className="panel notation-panel">
-            <div className="notation-toolbar">
+            <div className="notation-header">
               <span className="panel-hint">Moves</span>
               <span className="panel-hint mono">{game?.inviteCode || gameId}</span>
             </div>
-            <div className="notation-list">
+            <div className="notation-table">
               {moveRows.length === 0 ? <div className="empty-state subtle">No moves yet.</div> : null}
               {moveRows.map((row) => (
                 <div className="notation-row" key={`move-row-${row.moveNumber}`}>
@@ -488,7 +488,7 @@ export function GameClient({ gameId }: { gameId: string }) {
           </div>
 
           <div className={`player-card bottom ${game?.turn === "w" && game?.status === "active" ? "active" : ""}`}>
-            <div className="player-card-header">
+            <div className="player-card-head">
               <div className="player-card-name-row">
                 <span className="presence-dot" />
                 <span className="player-card-title">@{game?.white || "waiting"}</span>
