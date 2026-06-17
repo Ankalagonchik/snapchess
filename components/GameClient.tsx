@@ -119,7 +119,7 @@ export function GameClient({ gameId }: { gameId: string }) {
   const [status, setStatus] = useState("Loading board...");
   const [error, setError] = useState<string | null>(null);
   const [stakeMemo, setStakeMemo] = useState("");
-  const [tableCollapsed, setTableCollapsed] = useState(false);
+  const [tableCollapsed, setTableCollapsed] = useState(true);
   const [tick, setTick] = useState(0);
   const [boardWidth, setBoardWidth] = useState(720);
   const [stakeVerifying, setStakeVerifying] = useState(false);
@@ -154,7 +154,9 @@ export function GameClient({ gameId }: { gameId: string }) {
     }
 
     const update = () => {
-      const nextWidth = Math.max(260, Math.min(920, Math.floor(element.clientWidth)));
+      const rect = element.getBoundingClientRect();
+      const viewportHeightCap = Math.max(260, Math.floor(window.innerHeight - rect.top - 24));
+      const nextWidth = Math.max(260, Math.min(920, Math.min(Math.floor(element.clientWidth), viewportHeightCap)));
       setBoardWidth(nextWidth);
     };
 
@@ -448,10 +450,23 @@ export function GameClient({ gameId }: { gameId: string }) {
           <div className="panel game-summary-card">
             <div className="section-eyebrow">Game</div>
             <div className="game-summary-title">{game?.rated ? "Rated" : "Casual"} game</div>
-            <div className="game-summary-line">Board code: <span className="mono">{game?.inviteCode || gameId}</span></div>
-            <div className="game-summary-line">Share link: <span className="mono">{sharePath}</span></div>
+            <div className="game-summary-line">@{game?.white || "white"} vs @{game?.black || "black"}</div>
+            <div className="game-summary-line">Code: <span className="mono">{game?.inviteCode || gameId}</span></div>
             <div className="game-summary-line">Status: {game?.status || "loading"}</div>
             {game?.result ? <div className="game-summary-line emphasis-text">{game.result.message}</div> : null}
+            <div className="button-row compact-actions top-gap">
+              <button
+                className="ghost small-button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    navigator.clipboard.writeText(`${window.location.origin}${sharePath}`);
+                    setStatus("Share link copied.");
+                  }
+                }}
+              >
+                Copy link
+              </button>
+            </div>
           </div>
 
           <div className="panel">
@@ -482,21 +497,12 @@ export function GameClient({ gameId }: { gameId: string }) {
 
             {!tableCollapsed ? (
               <>
-                <div className="status-box top-gap">
+                <div className="status-box top-gap compact-table-box">
                   <div>
                     <strong>Mode:</strong> {game?.rated ? "Rated" : "Casual"}
                   </div>
                   <div>
-                    <strong>Invite code:</strong> <span className="mono">{game?.inviteCode || gameId}</span>
-                  </div>
-                  <div>
-                    <strong>Share link:</strong> <span className="mono">{sharePath}</span>
-                  </div>
-                  <div>
-                    <strong>Status:</strong> {game?.status || "loading"}
-                  </div>
-                  <div>
-                    <strong>Abort window:</strong> {game?.isAbortable ? "Open" : "Closed"}
+                    <strong>Window:</strong> {game?.isAbortable ? "Abortable" : "Locked"}
                   </div>
                   {game?.result?.ratingDelta ? (
                     <div>
@@ -531,7 +537,7 @@ export function GameClient({ gameId }: { gameId: string }) {
               <div className="inline-note">
                 Stake: <strong>{game.stake.amount.toFixed(3)} HIVE</strong> to <span className="mono">{game.stake.escrowAccount}</span>
               </div>
-              <div className="status-box top-gap">
+              <div className="status-box top-gap compact-table-box">
                 <div>
                   <strong>Fee:</strong> 4% of the total pot, minimum 0.002 HIVE, retained by @{game.stake.escrowAccount}
                 </div>
@@ -539,7 +545,7 @@ export function GameClient({ gameId }: { gameId: string }) {
                   <strong>Hold status:</strong> {game.stake.settlementStatus}
                 </div>
                 <div>
-                  <strong>Settlement:</strong> {game.stake.settlementMemo || "Stake is not funded yet."}
+                  <strong>Settlement:</strong> {game.stake.settlementMemo || "Not funded yet."}
                 </div>
                 {game.stake.payoutTxId ? (
                   <div>
@@ -572,9 +578,6 @@ export function GameClient({ gameId }: { gameId: string }) {
                 </div>
                 <div className="subtle">white funded: {game.stake.whiteConfirmed ? "yes" : "no"}</div>
                 <div className="subtle">black funded: {game.stake.blackConfirmed ? "yes" : "no"}</div>
-                <div className="inline-note subtle">
-                  Stake flow: players transfer HIVE into the escrow account. Funds stay held there until settlement. When the game finishes, the winner receives the pot minus the 4% platform fee, with a minimum fee of 0.002 HIVE. If both sides have not committed moves yet, cancel or leave triggers refund settlement and no rating is applied.
-                </div>
               </div>
             </div>
           ) : null}

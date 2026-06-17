@@ -448,7 +448,7 @@ select {
 .game-layout {
   display: grid;
   gap: 12px;
-  grid-template-columns: 220px minmax(0, 1fr) 300px;
+  grid-template-columns: 190px minmax(0, 1fr) 280px;
   align-items: start;
 }
 
@@ -470,7 +470,7 @@ select {
 
 .game-summary-title {
   margin-top: 6px;
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 700;
   color: #edf3ff;
 }
@@ -478,8 +478,8 @@ select {
 .game-summary-line {
   margin-top: 6px;
   color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
+  font-size: 0.84rem;
+  line-height: 1.35;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -487,6 +487,12 @@ select {
 .game-summary-line.emphasis-text {
   color: #dfe7f6;
   font-weight: 600;
+}
+
+.compact-table-box {
+  display: grid;
+  gap: 4px;
+  font-size: 0.84rem;
 }
 
 .board-column {
@@ -552,7 +558,7 @@ select {
 
 .player-card-label {
   color: #d7d8dd;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -561,7 +567,7 @@ select {
 
 .player-card-rating {
   color: #9ea4aa;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   font-weight: 500;
 }
 
@@ -570,7 +576,7 @@ select {
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
   color: #d0d1d4;
-  font-size: clamp(1.8rem, 2.2vw, 2.8rem);
+  font-size: clamp(1.55rem, 1.9vw, 2.3rem);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -613,7 +619,7 @@ select {
 }
 
 .notation-table {
-  max-height: 420px;
+  max-height: 360px;
   overflow: auto;
 }
 
@@ -740,7 +746,7 @@ select {
 
 .result-banner {
   padding: 6px 8px;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   align-self: start;
 }
 
