@@ -204,8 +204,9 @@ export function GameClient({ gameId }: { gameId: string }) {
 
   async function loginWithKeychain() {
     setError(null);
-    const username = usernameInput.trim().toLowerCase();
-    if (!username) {
+    const fallbackPrompt = typeof window !== "undefined" ? window.prompt("Enter your Hive username") || "" : "";
+    const targetUsername = (usernameInput || username || fallbackPrompt).trim().toLowerCase();
+    if (!targetUsername) {
       setError("Enter a Hive username.");
       return;
     }
@@ -220,12 +221,12 @@ export function GameClient({ gameId }: { gameId: string }) {
         "/api/auth/challenge",
         {
           method: "POST",
-          body: JSON.stringify({ username }),
+          body: JSON.stringify({ username: targetUsername }),
         },
       );
 
       const signedTx = await new Promise<Record<string, unknown>>((resolve, reject) => {
-        window.hive_keychain!.requestSignTx(username, challenge.tx, "Posting", (response) => {
+        window.hive_keychain!.requestSignTx(targetUsername, challenge.tx, "Posting", (response) => {
           if (response.success && response.result) {
             resolve(response.result);
             return;
@@ -238,7 +239,7 @@ export function GameClient({ gameId }: { gameId: string }) {
         "/api/auth/verify",
         {
           method: "POST",
-          body: JSON.stringify({ username, challengeToken: challenge.challengeToken, signedTx }),
+          body: JSON.stringify({ username: targetUsername, challengeToken: challenge.challengeToken, signedTx }),
         },
       );
 
@@ -427,6 +428,15 @@ export function GameClient({ gameId }: { gameId: string }) {
         </div>
         <div className="topbar-actions">
           <div className="subtle topbar-status">{status}</div>
+          {token ? (
+            <button className="ghost link-button" onClick={logout}>
+              Log out @{username}
+            </button>
+          ) : (
+            <button className="primary link-button" onClick={loginWithKeychain}>
+              Connect Hive Keychain
+            </button>
+          )}
           <a className="ghost link-button" href="/">
             Back to lobby
           </a>
@@ -505,23 +515,8 @@ export function GameClient({ gameId }: { gameId: string }) {
                 </div>
 
                 <div className="divider" />
-
-                <div className="form-grid">
-                  <div className="field">
-                    <label>Hive username</label>
-                    <input value={usernameInput} onChange={(event) => setUsernameInput(event.target.value)} placeholder="meno" />
-                  </div>
-                  <div className="button-row">
-                    <button className="primary" onClick={loginWithKeychain}>
-                      Connect Hive Keychain
-                    </button>
-                    <button className="ghost" onClick={logout} disabled={!token}>
-                      Log out
-                    </button>
-                  </div>
-                  <div className="inline-note subtle">
-                    User: <span className="mono">{username ? `@${username}` : "guest"}</span>
-                  </div>
+                <div className="inline-note subtle compact-auth-row">
+                  Player session: <span className="mono">{username ? `@${username}` : "guest"}</span>
                 </div>
               </>
             ) : null}

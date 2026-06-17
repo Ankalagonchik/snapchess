@@ -921,6 +921,10 @@ select {
   text-decoration: none;
 }
 
+.compact-auth-row {
+  font-size: 0.84rem;
+}
+
 .top-gap {
   margin-top: 12px;
 }
