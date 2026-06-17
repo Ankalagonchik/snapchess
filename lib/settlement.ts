@@ -1,8 +1,28 @@
 import type { StoredGame } from "@/lib/types";
 import { hasEscrowAutomation, transferFromEscrow } from "@/lib/hive";
 
+const HOUSE_FEE_RATE = 0.04;
+const HOUSE_FEE_MINIMUM = 0.002;
+
 function amountOrZero(amount?: number) {
   return Number((amount || 0).toFixed(3));
+}
+
+export function getStakePot(game: StoredGame) {
+  return amountOrZero(game.stake.amount * 2);
+}
+
+export function getHouseFeeFromPot(pot: number) {
+  return amountOrZero(Math.max(pot * HOUSE_FEE_RATE, HOUSE_FEE_MINIMUM));
+}
+
+export function getStakeSettlementSummary(game: StoredGame) {
+  const pot = getStakePot(game);
+  const fee = getHouseFeeFromPot(pot);
+  const payout = amountOrZero(Math.max(0, pot - fee));
+  const winnerNet = amountOrZero(Math.max(0, payout - game.stake.amount));
+
+  return { pot, fee, payout, winnerNet };
 }
 
 export async function settleAbortedGame(game: StoredGame) {
@@ -63,12 +83,12 @@ export async function settleFinishedGame(game: StoredGame) {
     return;
   }
 
-  const payoutAmount = amountOrZero(game.stake.amount * 2);
+  const { fee, payout } = getStakeSettlementSummary(game);
   game.stake.payoutTxId = await transferFromEscrow({
     to: winner,
-    amount: payoutAmount,
+    amount: payout,
     memo: `payout:${game.id}:${winner}`,
   });
   game.stake.settlementStatus = "paid";
-  game.stake.settlementMemo = `Escrow paid ${payoutAmount.toFixed(3)} HIVE to @${winner}.`;
+  game.stake.settlementMemo = `Escrow paid ${payout.toFixed(3)} HIVE to @${winner} and retained ${fee.toFixed(3)} HIVE as the platform fee.`;
 }

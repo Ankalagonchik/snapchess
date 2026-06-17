@@ -1,4 +1,5 @@
 import type { AppState, LeaderboardEntry, PlayerStats, StoredGame } from "@/lib/types";
+import { getStakeSettlementSummary } from "@/lib/settlement";
 
 const DEFAULT_RATING = 1500;
 
@@ -129,16 +130,17 @@ export function applyCompletedGameStats(state: AppState, game: StoredGame) {
 
   if (game.stake.amount > 0 && game.result.winner !== "draw") {
     const winnerIsWhite = game.result.winner === "white";
-    const amount = Number(game.stake.amount.toFixed(3));
+    const { winnerNet } = getStakeSettlementSummary(game);
+    const loserNet = Number(game.stake.amount.toFixed(3));
 
     if (winnerIsWhite) {
-      white.hiveWon += amount;
-      black.hiveLost += amount;
-      game.result.stakeDeltaHive = { white: amount, black: -amount };
+      white.hiveWon += winnerNet;
+      black.hiveLost += loserNet;
+      game.result.stakeDeltaHive = { white: winnerNet, black: -loserNet };
     } else {
-      black.hiveWon += amount;
-      white.hiveLost += amount;
-      game.result.stakeDeltaHive = { white: -amount, black: amount };
+      black.hiveWon += winnerNet;
+      white.hiveLost += loserNet;
+      game.result.stakeDeltaHive = { white: -loserNet, black: winnerNet };
     }
   }
 

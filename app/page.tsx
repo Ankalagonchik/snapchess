@@ -26,10 +26,28 @@ async function api<T>(url: string, options: RequestInit = {}, token?: string | n
   }
 
   const response = await fetch(url, { ...options, headers });
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error || "Request failed");
+  const raw = await response.text();
+  let payload: (T & { error?: string }) | null = null;
+
+  if (raw) {
+    try {
+      payload = JSON.parse(raw) as T & { error?: string };
+    } catch {
+      if (!response.ok) {
+        throw new Error(raw || `Request failed with status ${response.status}`);
+      }
+      throw new Error("The server returned an invalid JSON response.");
+    }
   }
+
+  if (!response.ok) {
+    throw new Error(payload?.error || raw || `Request failed with status ${response.status}`);
+  }
+
+  if (!payload) {
+    throw new Error("The server returned an empty response.");
+  }
+
   return payload;
 }
 
@@ -283,7 +301,7 @@ export default function HomePage() {
               </button>
 
               <div className="inline-note subtle">
-                Games open in a dedicated tab, closer to the Lichess play flow.
+                Games open in a dedicated tab. Stake games use the `justdebateonline` escrow account and retain a 4% platform fee with a 0.002 HIVE minimum before payout.
               </div>
             </div>
           </div>

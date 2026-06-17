@@ -60,10 +60,28 @@ async function api<T>(url: string, options: RequestInit = {}, token?: string | n
   }
 
   const response = await fetch(url, { ...options, headers });
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error || "Request failed");
+  const raw = await response.text();
+  let payload: (T & { error?: string }) | null = null;
+
+  if (raw) {
+    try {
+      payload = JSON.parse(raw) as T & { error?: string };
+    } catch {
+      if (!response.ok) {
+        throw new Error(raw || `Request failed with status ${response.status}`);
+      }
+      throw new Error("The server returned an invalid JSON response.");
+    }
   }
+
+  if (!response.ok) {
+    throw new Error(payload?.error || raw || `Request failed with status ${response.status}`);
+  }
+
+  if (!payload) {
+    throw new Error("The server returned an empty response.");
+  }
+
   return payload;
 }
 
@@ -494,6 +512,9 @@ export function GameClient({ gameId }: { gameId: string }) {
               </div>
               <div className="status-box top-gap">
                 <div>
+                  <strong>Fee:</strong> 4% of the total pot, minimum 0.002 HIVE, retained by @{game.stake.escrowAccount}
+                </div>
+                <div>
                   <strong>Hold status:</strong> {game.stake.settlementStatus}
                 </div>
                 <div>
@@ -531,7 +552,7 @@ export function GameClient({ gameId }: { gameId: string }) {
                 <div className="subtle">white funded: {game.stake.whiteConfirmed ? "yes" : "no"}</div>
                 <div className="subtle">black funded: {game.stake.blackConfirmed ? "yes" : "no"}</div>
                 <div className="inline-note subtle">
-                  Stake flow: players transfer HIVE into the escrow account. Funds stay held until the game ends. If both sides have not committed moves yet, cancel/leave sends the game into refund settlement and no rating is applied.
+                  Stake flow: players transfer HIVE into the escrow account. Funds stay held there until settlement. When the game finishes, the winner receives the pot minus the 4% platform fee, with a minimum fee of 0.002 HIVE. If both sides have not committed moves yet, cancel or leave triggers refund settlement and no rating is applied.
                 </div>
               </div>
             </div>

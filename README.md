@@ -27,3 +27,12 @@ Local app:
 ```bash
 http://localhost:3000
 ```
+
+## Deployment Notes
+
+For persistent state on Vercel, configure Supabase and run the SQL in `SUPABASE_SETUP.sql`, then set:
+
+```bash
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
