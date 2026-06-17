@@ -115,7 +115,14 @@ export async function mutateState<T>(mutator: (state: AppState) => Promise<T> | 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const record = await readSupabaseStateRecord();
       const current = normalizeState(record?.value ?? EMPTY_STATE);
+      const beforeJson = JSON.stringify(current);
       const result = await mutator(current);
+      const afterJson = JSON.stringify(current);
+
+      if (beforeJson === afterJson) {
+        return result;
+      }
+
       const nextUpdatedAt = new Date().toISOString();
 
       if (!record) {
@@ -160,7 +167,12 @@ export async function mutateState<T>(mutator: (state: AppState) => Promise<T> | 
 
   const resultPromise = writeQueue.then(async () => {
     const current = await readState();
+    const beforeJson = JSON.stringify(current);
     const result = await mutator(current);
+    const afterJson = JSON.stringify(current);
+    if (beforeJson === afterJson) {
+      return result;
+    }
     await writeState(current);
     return result;
   });

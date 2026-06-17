@@ -370,12 +370,13 @@ export default function HomePage() {
                     <h4>
                       {game.white} vs {game.black ?? "..."}
                     </h4>
-                    <span className="card-chip muted">{game.status}</span>
+                    <span className="card-chip muted">{game.result ? game.result.winner === "draw" ? "Draw" : `${game.result.winner} won` : game.status}</span>
                   </div>
                   <div className="card-meta-row">
                     <span>{game.timeControl.label}</span>
                     <span className="mono">{game.inviteCode}</span>
                   </div>
+                  {game.result ? <div className="subtle compact-row">{game.result.message}</div> : null}
                   <div className="subtle compact-row">
                     {game.rated ? "Rated" : "Casual"}
                     {game.stake.amount > 0 ? ` • ${game.stake.amount.toFixed(3)} HIVE` : " • No stake"}

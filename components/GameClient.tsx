@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 
@@ -87,6 +87,7 @@ async function api<T>(url: string, options: RequestInit = {}, token?: string | n
 
 export function GameClient({ gameId }: { gameId: string }) {
   const sharePath = `/game/${gameId}`;
+  const boardStageRef = useRef<HTMLDivElement | null>(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [username, setUsername] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -96,6 +97,7 @@ export function GameClient({ gameId }: { gameId: string }) {
   const [stakeMemo, setStakeMemo] = useState("");
   const [tableCollapsed, setTableCollapsed] = useState(false);
   const [tick, setTick] = useState(0);
+  const [boardWidth, setBoardWidth] = useState(720);
 
   const myColor = getMyColor(game, username);
   const displayTimes = useMemo(() => getLiveDisplayTimes(game), [game, tick]);
@@ -120,11 +122,34 @@ export function GameClient({ gameId }: { gameId: string }) {
   }, []);
 
   useEffect(() => {
+    const element = boardStageRef.current;
+    if (!element) {
+      return;
+    }
+
+    const update = () => {
+      const nextWidth = Math.max(260, Math.min(720, Math.floor(element.clientWidth - 28)));
+      setBoardWidth(nextWidth);
+    };
+
+    update();
+
+    const observer = new ResizeObserver(() => update());
+    observer.observe(element);
+    window.addEventListener("resize", update);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  useEffect(() => {
     let active = true;
 
     const load = async () => {
       try {
-        const payload = await api<{ game: PublicGame }>(`/api/games/${gameId}`, { method: "GET" }, token);
+        const payload = await api<{ game: PublicGame }>(`/api/games/${gameId}/sync`, { method: "POST", body: JSON.stringify({}) }, token);
         if (active) {
           setGame(payload.game);
           setStatus(`Board ${payload.game.inviteCode}`);
@@ -384,11 +409,11 @@ export function GameClient({ gameId }: { gameId: string }) {
                 </div>
               </div>
 
-              <div className="board-stage">
+              <div className="board-stage" ref={boardStageRef}>
                 <Chessboard
                   id="snapchess-board"
                   position={game.fen}
-                  boardWidth={720}
+                  boardWidth={boardWidth}
                   boardOrientation={myColor === "black" ? "black" : "white"}
                   arePiecesDraggable={Boolean(canMove)}
                   onPieceDrop={onPieceDrop}
