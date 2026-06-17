@@ -419,7 +419,7 @@ export function GameClient({ gameId }: { gameId: string }) {
   }
 
   return (
-    <main className="page-shell">
+    <main className="page-shell game-page-shell">
       <div className="topbar">
         <div>
           <div className="section-eyebrow">Game Room</div>
