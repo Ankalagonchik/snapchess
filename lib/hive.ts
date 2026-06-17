@@ -90,7 +90,7 @@ async function callAccountHistory(account: string, limit = 200) {
     method: "account_history_api.get_account_history",
     params: {
       account,
-      start: -1,
+      start: "18446744073709551615",
       limit,
       include_reversible: true,
     },
