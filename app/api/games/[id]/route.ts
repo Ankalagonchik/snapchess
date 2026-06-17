@@ -3,6 +3,9 @@ import { maybeExpireOnClock, serializeGame } from "@/lib/game";
 import { getGameRatings } from "@/lib/stats";
 import { readState } from "@/lib/store";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(_: Request, context: { params: { id: string } }) {
   const state = await readState();
   const game = state.games.find((entry) => entry.id === context.params.id || entry.inviteCode === context.params.id.toUpperCase());
@@ -19,5 +22,12 @@ export async function GET(_: Request, context: { params: { id: string } }) {
     return jsonError("Game not found.", 404);
   }
 
-  return Response.json({ game: result });
+  return Response.json(
+    { game: result },
+    {
+      headers: {
+        "cache-control": "no-store, no-cache, must-revalidate",
+      },
+    },
+  );
 }

@@ -25,7 +25,7 @@ async function api<T>(url: string, options: RequestInit = {}, token?: string | n
     headers.set("authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, { ...options, headers, cache: "no-store" });
   const raw = await response.text();
   let payload: (T & { error?: string }) | null = null;
 

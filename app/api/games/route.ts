@@ -6,6 +6,9 @@ import { getEscrowAccount } from "@/lib/hive";
 import { buildLeaderboards, ensurePlayer, getGameRatings, toLeaderboardEntry } from "@/lib/stats";
 import { mutateState, readState } from "@/lib/store";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function cloneGame<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -45,12 +48,19 @@ export async function GET(request: Request) {
 
   const me = username ? state.players.find((entry) => entry.username === username) : null;
 
-  return Response.json({
-    openGames,
-    myGames,
-    me: me ? toLeaderboardEntry(me) : null,
-    leaderboards: buildLeaderboards(state),
-  });
+  return Response.json(
+    {
+      openGames,
+      myGames,
+      me: me ? toLeaderboardEntry(me) : null,
+      leaderboards: buildLeaderboards(state),
+    },
+    {
+      headers: {
+        "cache-control": "no-store, no-cache, must-revalidate",
+      },
+    },
+  );
 }
 
 export async function POST(request: Request) {
