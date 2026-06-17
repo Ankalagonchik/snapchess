@@ -209,7 +209,9 @@ export default function HomePage() {
           <div className="section-eyebrow">Snapie Hive Chess</div>
           <div className="topbar-title">SnapChess</div>
         </div>
-        <div className="site-actions subtle">{status}</div>
+        <div className="site-actions">
+          <div className="site-status-pill">{status}</div>
+        </div>
       </section>
 
       <section className="lobby-layout">
@@ -312,6 +314,11 @@ export default function HomePage() {
         <div className="stack lobby-main">
           <section className="hero hero-lobby">
             <div className="hero-main">
+              <div className="hero-kicker-row">
+                <span className="hero-kicker-pill">Play</span>
+                <span className="hero-kicker-pill">Compete</span>
+                <span className="hero-kicker-pill">Stake</span>
+              </div>
               <div className="hero-badges">
                 <span className="hero-badge">Hive Keychain</span>
                 <span className="hero-badge">Rated and casual</span>
@@ -332,7 +339,7 @@ export default function HomePage() {
               <span className="panel-hint">Public pairings and direct invites</span>
             </div>
             <div className="list">
-              {lobby.openGames.length === 0 ? <div className="subtle">No open games yet.</div> : null}
+              {lobby.openGames.length === 0 ? <div className="empty-state subtle">No open games yet.</div> : null}
               {lobby.openGames.map((game) => (
                 <a key={game.id} className="card-button link-card" href={`/game/${game.id}`} target="_blank" rel="noreferrer">
                   <div className="card-topline">
@@ -363,7 +370,7 @@ export default function HomePage() {
               <span className="panel-hint">Resume in a new tab</span>
             </div>
             <div className="list">
-              {lobby.myGames.length === 0 ? <div className="subtle">Your games will appear here.</div> : null}
+              {lobby.myGames.length === 0 ? <div className="empty-state subtle">Your games will appear here.</div> : null}
               {lobby.myGames.map((game) => (
                 <a key={game.id} className="card-button link-card" href={`/game/${game.id}`} target="_blank" rel="noreferrer">
                   <div className="card-topline">

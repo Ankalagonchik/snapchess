@@ -418,20 +418,19 @@ export function GameClient({ gameId }: { gameId: string }) {
             <div className="subtle">Loading game...</div>
           ) : (
             <>
-              <div className="clock-row">
-                <div className={`clock ${game.turn === "b" && game.status === "active" ? "active" : ""}`}>
-                  <div className="clock-label">
-                    Black @{game.black || "waiting"}
-                    {game.blackRating ? ` (${game.blackRating})` : ""}
+              <div className={`player-rack ${game.turn === "b" && game.status === "active" ? "active" : ""}`}>
+                <div className="player-rack-main">
+                  <div className="player-avatar dark">B</div>
+                  <div className="player-meta">
+                    <div className="player-name">
+                      @{game.black || "waiting"}
+                      {game.blackRating ? <span className="player-rating">{game.blackRating}</span> : null}
+                    </div>
+                    <div className="player-subtle">Black pieces</div>
                   </div>
-                  <div className="clock-time">{formatMs(displayTimes.black)}</div>
                 </div>
-                <div className={`clock ${game.turn === "w" && game.status === "active" ? "active" : ""}`}>
-                  <div className="clock-label">
-                    White @{game.white}
-                    {game.whiteRating ? ` (${game.whiteRating})` : ""}
-                  </div>
-                  <div className="clock-time">{formatMs(displayTimes.white)}</div>
+                <div className="clock compact-clock">
+                  <div className="clock-time">{formatMs(displayTimes.black)}</div>
                 </div>
               </div>
 
@@ -446,6 +445,22 @@ export function GameClient({ gameId }: { gameId: string }) {
                   customDarkSquareStyle={{ backgroundColor: "#214063" }}
                   customLightSquareStyle={{ backgroundColor: "#dcecff" }}
                 />
+              </div>
+
+              <div className={`player-rack ${game.turn === "w" && game.status === "active" ? "active" : ""}`}>
+                <div className="player-rack-main">
+                  <div className="player-avatar light">W</div>
+                  <div className="player-meta">
+                    <div className="player-name">
+                      @{game.white}
+                      {game.whiteRating ? <span className="player-rating">{game.whiteRating}</span> : null}
+                    </div>
+                    <div className="player-subtle">White pieces</div>
+                  </div>
+                </div>
+                <div className="clock compact-clock">
+                  <div className="clock-time">{formatMs(displayTimes.white)}</div>
+                </div>
               </div>
 
               {game.result ? <div className="status-box success">{game.result.message}</div> : null}
