@@ -444,7 +444,7 @@ select {
 .game-layout {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
   align-items: start;
 }
 
@@ -455,16 +455,52 @@ select {
   align-self: start;
 }
 
+.game-meta-column {
+  gap: 12px;
+}
+
+.game-summary-card {
+  padding: 14px;
+}
+
+.game-summary-title {
+  margin-top: 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #edf3ff;
+}
+
+.game-summary-line {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.game-summary-line.emphasis-text {
+  color: #dfe7f6;
+  font-weight: 600;
+}
+
+.board-column {
+  min-width: 0;
+}
+
+.clean-board-wrap {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 .board-stage {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  border: 1px solid rgba(153, 183, 216, 0.12);
-  border-radius: 10px;
-  background:
-    radial-gradient(circle at top, rgba(109, 121, 255, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(26, 22, 30, 0.98), rgba(18, 16, 21, 0.98));
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
 .game-rail {
@@ -568,7 +604,7 @@ select {
 }
 
 .notation-table {
-  max-height: 340px;
+  max-height: 420px;
   overflow: auto;
 }
 
@@ -694,7 +730,7 @@ select {
 }
 
 .result-banner {
-  padding: 8px 10px;
+  padding: 6px 8px;
   font-size: 0.86rem;
   align-self: start;
 }
@@ -885,13 +921,24 @@ select {
 @media (max-width: 1080px) {
   .hero,
   .grid,
-  .game-layout,
   .lobby-layout {
     grid-template-columns: 1fr;
   }
 
-  .game-rail {
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .game-meta-column {
+    order: 1;
+  }
+
+  .board-column {
     order: 2;
+  }
+
+  .game-rail {
+    order: 3;
   }
 
   .site-bar {

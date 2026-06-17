@@ -154,8 +154,7 @@ export function GameClient({ gameId }: { gameId: string }) {
     }
 
     const update = () => {
-      const viewportCap = typeof window === "undefined" ? 860 : Math.max(280, Math.floor(window.innerHeight - 170));
-      const nextWidth = Math.max(260, Math.min(900, Math.min(Math.floor(element.clientWidth - 8), viewportCap)));
+      const nextWidth = Math.max(260, Math.min(920, Math.floor(element.clientWidth)));
       setBoardWidth(nextWidth);
     };
 
@@ -435,67 +434,14 @@ export function GameClient({ gameId }: { gameId: string }) {
       </div>
 
       <section className="game-layout page-game-layout">
-        <div className="panel board-wrap board-panel">
-          {!game ? (
-            <div className="subtle">Loading game...</div>
-          ) : (
-            <>
-              <div className="board-stage" ref={boardStageRef}>
-                <Chessboard
-                  id="snapchess-board"
-                  position={game.fen}
-                  boardWidth={boardWidth}
-                  boardOrientation={myColor === "black" ? "black" : "white"}
-                  arePiecesDraggable={Boolean(canMove)}
-                  onPieceDrop={onPieceDrop}
-                  customDarkSquareStyle={{ backgroundColor: "#8754a0" }}
-                  customLightSquareStyle={{ backgroundColor: "#a99aba" }}
-                />
-              </div>
-
-              {game.result ? <div className="status-box success result-banner">{game.result.message}</div> : null}
-            </>
-          )}
-        </div>
-
-        <div className="stack game-rail">
-          <div className={`player-card top ${game?.turn === "b" && game?.status === "active" ? "active" : ""}`}>
-            <div className="player-card-head">
-              <div className="player-card-name-row">
-                <span className="presence-dot" />
-                <span className="player-card-title">@{game?.black || "waiting"}</span>
-                {game?.blackRating ? <span className="player-card-rating">{game.blackRating}</span> : null}
-              </div>
-            </div>
-            <div className="rail-clock">{formatMs(displayTimes.black)}</div>
-          </div>
-
-          <div className="panel notation-panel">
-            <div className="notation-header">
-              <span className="panel-hint">Moves</span>
-              <span className="panel-hint mono">{game?.inviteCode || gameId}</span>
-            </div>
-            <div className="notation-table">
-              {moveRows.length === 0 ? <div className="empty-state subtle">No moves yet.</div> : null}
-              {moveRows.map((row) => (
-                <div className="notation-row" key={`move-row-${row.moveNumber}`}>
-                  <div className="notation-index">{row.moveNumber}</div>
-                  <div className="notation-move">{row.white || ""}</div>
-                  <div className="notation-move emphasis">{row.black || ""}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className={`player-card bottom ${game?.turn === "w" && game?.status === "active" ? "active" : ""}`}>
-            <div className="player-card-head">
-              <div className="player-card-name-row">
-                <span className="presence-dot" />
-                <span className="player-card-title">@{game?.white || "waiting"}</span>
-                {game?.whiteRating ? <span className="player-card-rating">{game.whiteRating}</span> : null}
-              </div>
-            </div>
-            <div className="rail-clock">{formatMs(displayTimes.white)}</div>
+        <aside className="stack game-meta-column">
+          <div className="panel game-summary-card">
+            <div className="section-eyebrow">Game</div>
+            <div className="game-summary-title">{game?.rated ? "Rated" : "Casual"} game</div>
+            <div className="game-summary-line">Board code: <span className="mono">{game?.inviteCode || gameId}</span></div>
+            <div className="game-summary-line">Share link: <span className="mono">{sharePath}</span></div>
+            <div className="game-summary-line">Status: {game?.status || "loading"}</div>
+            {game?.result ? <div className="game-summary-line emphasis-text">{game.result.message}</div> : null}
           </div>
 
           <div className="panel">
@@ -639,6 +585,72 @@ export function GameClient({ gameId }: { gameId: string }) {
           ) : null}
 
           {error ? <div className="status-box error">{error}</div> : null}
+        </aside>
+
+        <div className="board-column">
+          <div className="board-wrap clean-board-wrap">
+          {!game ? (
+            <div className="subtle">Loading game...</div>
+          ) : (
+            <>
+              <div className="board-stage" ref={boardStageRef}>
+                <Chessboard
+                  id="snapchess-board"
+                  position={game.fen}
+                  boardWidth={boardWidth}
+                  boardOrientation={myColor === "black" ? "black" : "white"}
+                  arePiecesDraggable={Boolean(canMove)}
+                  onPieceDrop={onPieceDrop}
+                  customDarkSquareStyle={{ backgroundColor: "#8754a0" }}
+                  customLightSquareStyle={{ backgroundColor: "#a99aba" }}
+                />
+              </div>
+
+              {game.result ? <div className="status-box success result-banner">{game.result.message}</div> : null}
+            </>
+          )}
+        </div>
+        </div>
+
+        <div className="stack game-rail">
+          <div className={`player-card top ${game?.turn === "b" && game?.status === "active" ? "active" : ""}`}>
+            <div className="player-card-head">
+              <div className="player-card-name-row">
+                <span className="presence-dot" />
+                <span className="player-card-title">@{game?.black || "waiting"}</span>
+                {game?.blackRating ? <span className="player-card-rating">{game.blackRating}</span> : null}
+              </div>
+            </div>
+            <div className="rail-clock">{formatMs(displayTimes.black)}</div>
+          </div>
+
+          <div className="panel notation-panel">
+            <div className="notation-header">
+              <span className="panel-hint">Moves</span>
+              <span className="panel-hint mono">{game?.inviteCode || gameId}</span>
+            </div>
+            <div className="notation-table">
+              {moveRows.length === 0 ? <div className="empty-state subtle">No moves yet.</div> : null}
+              {moveRows.map((row) => (
+                <div className="notation-row" key={`move-row-${row.moveNumber}`}>
+                  <div className="notation-index">{row.moveNumber}</div>
+                  <div className="notation-move">{row.white || ""}</div>
+                  <div className="notation-move emphasis">{row.black || ""}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={`player-card bottom ${game?.turn === "w" && game?.status === "active" ? "active" : ""}`}>
+            <div className="player-card-head">
+              <div className="player-card-name-row">
+                <span className="presence-dot" />
+                <span className="player-card-title">@{game?.white || "waiting"}</span>
+                {game?.whiteRating ? <span className="player-card-rating">{game.whiteRating}</span> : null}
+              </div>
+            </div>
+            <div className="rail-clock">{formatMs(displayTimes.white)}</div>
+          </div>
         </div>
       </section>
     </main>
