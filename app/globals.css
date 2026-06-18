@@ -230,7 +230,7 @@ select {
 .lobby-layout {
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(260px, 300px);
+  grid-template-columns: 250px minmax(0, 1fr) 310px;
   align-items: start;
 }
 
@@ -241,6 +241,74 @@ select {
 
 .hero-lobby {
   margin-bottom: 0;
+}
+
+.play-shell {
+  padding: 0;
+  overflow: hidden;
+}
+
+.play-shell-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(153, 183, 216, 0.08);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.play-tab {
+  padding: 14px 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.play-tab.active {
+  color: #f4a84b;
+  border-bottom: 2px solid #f4a84b;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 18px;
+}
+
+.time-tile {
+  display: grid;
+  place-items: center;
+  min-height: 124px;
+  border-radius: 10px;
+  border: 1px solid rgba(153, 183, 216, 0.1);
+  background: linear-gradient(180deg, rgba(54, 47, 51, 0.98), rgba(40, 35, 40, 0.98));
+  color: #d9dde5;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+}
+
+.time-tile:hover {
+  transform: translateY(-1px);
+  border-color: rgba(244, 168, 75, 0.28);
+}
+
+.time-tile.active {
+  border-color: rgba(244, 168, 75, 0.4);
+  box-shadow: 0 0 0 1px rgba(244, 168, 75, 0.14) inset;
+}
+
+.time-tile-main {
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1;
+  font-weight: 500;
+}
+
+.time-tile-sub {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .hero-card-compact {
@@ -254,6 +322,19 @@ select {
 
 .panel {
   padding: 14px 16px;
+}
+
+.action-panel {
+  padding: 18px;
+}
+
+.action-panel-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.big-action {
+  min-height: 52px;
+  font-size: 1rem;
 }
 
 .stats-grid {
@@ -952,7 +1033,7 @@ select {
 .profile-layout {
   display: grid;
   gap: 14px;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 280px minmax(0, 1fr);
 }
 
 .profile-stats-grid {
@@ -987,6 +1068,10 @@ select {
   display: block;
 }
 
+.profile-shell .topbar {
+  margin-bottom: 18px;
+}
+
 .compact-auth-row {
   font-size: 0.84rem;
 }
@@ -1005,6 +1090,10 @@ select {
   .lobby-layout,
   .profile-layout {
     grid-template-columns: 1fr;
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .game-layout {
@@ -1067,6 +1156,21 @@ select {
   .panel {
     padding: 12px;
     border-radius: 10px;
+  }
+
+  .play-shell-header {
+    padding: 0 12px;
+    gap: 12px;
+    overflow: auto;
+  }
+
+  .quick-grid {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .time-tile {
+    min-height: 96px;
   }
 
   .two-col,

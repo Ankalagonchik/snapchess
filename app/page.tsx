@@ -18,6 +18,11 @@ const TOKEN_KEY = "snapchess.token";
 const USERNAME_KEY = "snapchess.username";
 const TIME_CONTROL_OPTIONS = ["1+0 Bullet", "3+2 Blitz", "5+0 Blitz", "10+5 Rapid", "15+10 Rapid"];
 
+function getTimeControlParts(value: string) {
+  const [speed = value, category = ""] = value.split(" ");
+  return { speed, category };
+}
+
 async function api<T>(url: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set("content-type", "application/json");
@@ -211,10 +216,15 @@ export default function HomePage() {
         </div>
         <div className="site-actions">
           <div className="site-status-pill">{status}</div>
+          {username ? (
+            <a className="ghost link-button" href={`/player/${username}`}>
+              Profile @{username}
+            </a>
+          ) : null}
         </div>
       </section>
 
-      <section className="lobby-layout">
+      <section className="home-layout">
         <div className="stack lobby-side">
           <div className="panel">
             <div className="panel-heading">
@@ -259,79 +269,78 @@ export default function HomePage() {
                   </div>
                 </div>
               ) : null}
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel-heading">
-              <h2>Create Game</h2>
-              <span className="panel-hint">Quick pairing</span>
-            </div>
-            <div className="form-grid">
-              <div className="field">
-                <label>Time control</label>
-                <select value={timeControl} onChange={(event) => setTimeControl(event.target.value)}>
-                  {TIME_CONTROL_OPTIONS.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="two-col">
-                <div className="field">
-                  <label>Invite username</label>
-                  <input value={reservedOpponent} onChange={(event) => setReservedOpponent(event.target.value)} placeholder="eddiespino" />
+              {username ? (
+                <div className="button-row top-gap">
+                  <a className="ghost link-button" href={`/player/${username}`}>
+                    Open profile
+                  </a>
                 </div>
-                <div className="field">
-                  <label>Stake in HIVE</label>
-                  <input value={stakeAmount} onChange={(event) => setStakeAmount(event.target.value)} placeholder="0" />
-                </div>
-              </div>
-
-              <div className="field">
-                <label>Rating mode</label>
-                <select value={rated ? "rated" : "casual"} onChange={(event) => setRated(event.target.value === "rated")}>
-                  <option value="rated">Rated</option>
-                  <option value="casual">Casual</option>
-                </select>
-              </div>
-
-              <button className="primary" onClick={createChallengeGame} disabled={!token || loading}>
-                Create and open table
-              </button>
-
-              <div className="inline-note subtle">
-                Games open in a dedicated tab. Stake games use the `justdebateonline` escrow account and retain a 4% platform fee with a 0.002 HIVE minimum before payout.
-              </div>
+              ) : null}
             </div>
           </div>
 
           {error ? <div className="status-box error">{error}</div> : null}
+
+          <div className="panel">
+            <div className="panel-heading">
+              <h2>Leaderboards</h2>
+              <span className="panel-hint">Rating and HIVE won</span>
+            </div>
+            <div className="leaderboard-switch" role="tablist" aria-label="Leaderboard view">
+              <button
+                type="button"
+                className={`leaderboard-tab ${leaderboardView === "rating" ? "active" : ""}`}
+                onClick={() => setLeaderboardView("rating")}
+              >
+                Rating
+              </button>
+              <button
+                type="button"
+                className={`leaderboard-tab ${leaderboardView === "hive" ? "active" : ""}`}
+                onClick={() => setLeaderboardView("hive")}
+              >
+                HIVE Won
+              </button>
+            </div>
+            <div className="leaderboard-list">
+              {activeLeaders.length === 0 ? (
+                <div className="subtle">{leaderboardView === "rating" ? "No rated games yet." : "No HIVE results yet."}</div>
+              ) : null}
+              {activeLeaders.map((player, index) => (
+                <div className="leaderboard-row" key={`${leaderboardView}-${player.username}`}>
+                  <span className="leaderboard-rank">{index + 1}</span>
+                  <a className="leaderboard-name profile-link" href={`/player/${player.username}`}>@{player.username}</a>
+                  <span className="leaderboard-value">{leaderboardView === "rating" ? player.rating : player.netHive.toFixed(3)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="stack lobby-main">
-          <section className="hero hero-lobby">
-            <div className="hero-main">
-              <div className="hero-kicker-row">
-                <span className="hero-kicker-pill">Play</span>
-                <span className="hero-kicker-pill">Compete</span>
-                <span className="hero-kicker-pill">Stake</span>
-              </div>
-              <div className="hero-badges">
-                <span className="hero-badge">Hive Keychain</span>
-                <span className="hero-badge">Rated and casual</span>
-                <span className="hero-badge">Dedicated game tabs</span>
-              </div>
-              <h1 className="page-title">Play fast, clean, Hive-native chess.</h1>
-              <p className="hero-copy">A tighter chess lobby inspired by the structure of Lichess, restyled with Snapie colors and Hive account flows.</p>
+          <div className="play-shell panel">
+            <div className="play-shell-header">
+              <div className="play-tab active">Quick Pairing</div>
+              <div className="play-tab">Open Lobby</div>
+              <div className="play-tab">Challenge Match</div>
             </div>
-            <aside className="hero-card hero-card-compact">
-              <div className="section-eyebrow">Live Status</div>
-              <div className="status-ticker">{status}</div>
-            </aside>
-          </section>
+            <div className="quick-grid">
+              {TIME_CONTROL_OPTIONS.map((item) => {
+                const { speed, category } = getTimeControlParts(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    className={`time-tile ${timeControl === item ? "active" : ""}`}
+                    onClick={() => setTimeControl(item)}
+                  >
+                    <span className="time-tile-main">{speed}</span>
+                    <span className="time-tile-sub">{category}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="panel">
             <div className="panel-heading">
@@ -364,6 +373,52 @@ export default function HomePage() {
         </div>
 
         <div className="stack lobby-side">
+          <div className="panel action-panel">
+            <div className="panel-heading">
+              <h2>Create Game</h2>
+              <span className="panel-hint">Lichess-inspired action block</span>
+            </div>
+            <div className="form-grid">
+              <div className="field">
+                <label>Selected time control</label>
+                <select value={timeControl} onChange={(event) => setTimeControl(event.target.value)}>
+                  {TIME_CONTROL_OPTIONS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Invite username</label>
+                <input value={reservedOpponent} onChange={(event) => setReservedOpponent(event.target.value)} placeholder="eddiespino" />
+              </div>
+
+              <div className="two-col action-panel-grid">
+                <div className="field">
+                  <label>Stake in HIVE</label>
+                  <input value={stakeAmount} onChange={(event) => setStakeAmount(event.target.value)} placeholder="0" />
+                </div>
+                <div className="field">
+                  <label>Rating mode</label>
+                  <select value={rated ? "rated" : "casual"} onChange={(event) => setRated(event.target.value === "rated")}>
+                    <option value="rated">Rated</option>
+                    <option value="casual">Casual</option>
+                  </select>
+                </div>
+              </div>
+
+              <button className="primary big-action" onClick={createChallengeGame} disabled={!token || loading}>
+                Create and open table
+              </button>
+
+              <div className="inline-note subtle">
+                Stake games use the `justdebateonline` escrow account with a 4% fee and a 0.002 HIVE minimum.
+              </div>
+            </div>
+          </div>
+
           <div className="panel">
             <div className="panel-heading">
               <h2>My Games</h2>
@@ -389,41 +444,6 @@ export default function HomePage() {
                     {game.stake.amount > 0 ? ` • ${game.stake.amount.toFixed(3)} HIVE` : " • No stake"}
                   </div>
                 </a>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel-heading">
-              <h2>Leaderboards</h2>
-              <span className="panel-hint">Switch between rating and HIVE won</span>
-            </div>
-            <div className="leaderboard-switch" role="tablist" aria-label="Leaderboard view">
-              <button
-                type="button"
-                className={`leaderboard-tab ${leaderboardView === "rating" ? "active" : ""}`}
-                onClick={() => setLeaderboardView("rating")}
-              >
-                Rating
-              </button>
-              <button
-                type="button"
-                className={`leaderboard-tab ${leaderboardView === "hive" ? "active" : ""}`}
-                onClick={() => setLeaderboardView("hive")}
-              >
-                HIVE Won
-              </button>
-            </div>
-            <div className="leaderboard-list">
-              {activeLeaders.length === 0 ? (
-                <div className="subtle">{leaderboardView === "rating" ? "No rated games yet." : "No HIVE results yet."}</div>
-              ) : null}
-              {activeLeaders.map((player, index) => (
-                <div className="leaderboard-row" key={`${leaderboardView}-${player.username}`}>
-                  <span className="leaderboard-rank">{index + 1}</span>
-                  <a className="leaderboard-name profile-link" href={`/player/${player.username}`}>@{player.username}</a>
-                  <span className="leaderboard-value">{leaderboardView === "rating" ? player.rating : player.netHive.toFixed(3)}</span>
-                </div>
               ))}
             </div>
           </div>
