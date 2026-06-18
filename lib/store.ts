@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import { hasSupabase, supabase } from "@/lib/supabase";
+import { getSupabase, hasSupabase } from "@/lib/supabase";
 import type { AppState } from "@/lib/types";
 
 function resolveDataDir() {
@@ -41,6 +41,7 @@ function normalizeState(parsed: AppState): AppState {
 }
 
 async function readSupabaseStateRecord() {
+  const supabase = getSupabase();
   if (!supabase) {
     return null;
   }
@@ -59,7 +60,7 @@ async function readSupabaseStateRecord() {
 }
 
 async function ensureStateFile() {
-  if (hasSupabase) {
+  if (hasSupabase()) {
     return;
   }
   await fs.mkdir(DATA_DIR, { recursive: true });
@@ -71,7 +72,7 @@ async function ensureStateFile() {
 }
 
 export async function readState(): Promise<AppState> {
-  if (hasSupabase && supabase) {
+  if (hasSupabase()) {
     const record = await readSupabaseStateRecord();
     return normalizeState(record?.value ?? EMPTY_STATE);
   }
@@ -87,8 +88,9 @@ export async function readState(): Promise<AppState> {
 }
 
 export async function writeState(nextState: AppState) {
-  if (hasSupabase && supabase) {
-    const { error } = await supabase.from("snapchess_state").upsert(
+  const supabase = getSupabase();
+  if (supabase) {
+    const { error } = await (supabase as any).from("snapchess_state").upsert(
       {
         key: SUPABASE_STATE_KEY,
         value: nextState,
@@ -109,7 +111,8 @@ export async function writeState(nextState: AppState) {
 }
 
 export async function mutateState<T>(mutator: (state: AppState) => Promise<T> | T): Promise<T> {
-  if (hasSupabase && supabase) {
+  const supabase = getSupabase();
+  if (supabase) {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -126,7 +129,7 @@ export async function mutateState<T>(mutator: (state: AppState) => Promise<T> | 
       const nextUpdatedAt = new Date().toISOString();
 
       if (!record) {
-        const { error } = await supabase.from("snapchess_state").insert({
+        const { error } = await (supabase as any).from("snapchess_state").insert({
           key: SUPABASE_STATE_KEY,
           value: current,
           updated_at: nextUpdatedAt,
@@ -140,7 +143,7 @@ export async function mutateState<T>(mutator: (state: AppState) => Promise<T> | 
         continue;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("snapchess_state")
         .update({
           value: current,

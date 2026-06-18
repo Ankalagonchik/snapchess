@@ -1,15 +1,26 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let cachedClient: ReturnType<typeof createClient> | null | undefined;
 
-export const hasSupabase = Boolean(supabaseUrl && supabaseServiceRoleKey);
+export function hasSupabase() {
+  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
 
-export const supabase = hasSupabase
-  ? createClient(supabaseUrl!, supabaseServiceRoleKey!, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null;
+export function getSupabase() {
+  if (!hasSupabase()) {
+    return null;
+  }
+
+  if (cachedClient) {
+    return cachedClient;
+  }
+
+  cachedClient = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
+  return cachedClient;
+}
