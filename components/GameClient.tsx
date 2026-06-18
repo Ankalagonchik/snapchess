@@ -7,6 +7,32 @@ import { Chessboard } from "react-chessboard";
 import { useStockfish } from "@/hooks/useStockfish";
 import type { PublicGame } from "@/lib/types";
 
+type MoveReview = {
+  ply: number;
+  moveNumber: number;
+  color: "w" | "b";
+  san: string;
+  scoreBefore: number;
+  scoreAfter: number;
+  centipawnLoss: number;
+  verdict: "best" | "inaccuracy" | "mistake" | "blunder";
+};
+
+type PlayerAnalysisSummary = {
+  inaccuracies: number;
+  mistakes: number;
+  blunders: number;
+  averageCentipawnLoss: number;
+  accuracy: number;
+};
+
+type PostGameAnalysis = {
+  timeline: number[];
+  reviews: MoveReview[];
+  white: PlayerAnalysisSummary;
+  black: PlayerAnalysisSummary;
+};
+
 function getStakeMemo(gameId: string, username: string) {
   return `stake:${gameId}:${username.trim().toLowerCase()}`;
 }
@@ -77,6 +103,62 @@ function buildMoveRows(game: PublicGame | null) {
   return rows;
 }
 
+function toWhitePerspectiveScore(fen: string, result: { scoreCp: number | null; scoreMate: number | null }) {
+  const turn = new Chess(fen).turn();
+  const sign = turn === "w" ? 1 : -1;
+  if (result.scoreMate !== null) {
+    return sign * result.scoreMate * 1000;
+  }
+  if (result.scoreCp !== null) {
+    return sign * result.scoreCp;
+  }
+  return 0;
+}
+
+function classifyLoss(loss: number): MoveReview["verdict"] {
+  if (loss >= 300) {
+    return "blunder";
+  }
+  if (loss >= 120) {
+    return "mistake";
+  }
+  if (loss >= 50) {
+    return "inaccuracy";
+  }
+  return "best";
+}
+
+function buildSummary(reviews: MoveReview[], color: "w" | "b"): PlayerAnalysisSummary {
+  const mine = reviews.filter((review) => review.color === color);
+  const inaccuracies = mine.filter((review) => review.verdict === "inaccuracy").length;
+  const mistakes = mine.filter((review) => review.verdict === "mistake").length;
+  const blunders = mine.filter((review) => review.verdict === "blunder").length;
+  const totalLoss = mine.reduce((sum, review) => sum + review.centipawnLoss, 0);
+  const averageCentipawnLoss = mine.length ? totalLoss / mine.length : 0;
+  const accuracy = mine.length
+    ? Math.max(0, Math.min(100, Math.round(mine.reduce((sum, review) => sum + Math.max(0, 100 - Math.min(100, review.centipawnLoss / 4)), 0) / mine.length)))
+    : 100;
+
+  return { inaccuracies, mistakes, blunders, averageCentipawnLoss, accuracy };
+}
+
+function buildAnalysisPath(values: number[], width: number, height: number) {
+  if (values.length === 0) {
+    return "";
+  }
+
+  const clamped = values.map((value) => Math.max(-800, Math.min(800, value)));
+  const stepX = values.length > 1 ? width / (values.length - 1) : width;
+  return clamped
+    .map((value, index) => {
+      const x = stepX * index;
+      const normalized = (value + 800) / 1600;
+      const y = height - normalized * height;
+      return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
 async function api<T>(url: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set("content-type", "application/json");
@@ -125,7 +207,9 @@ export function GameClient({ gameId }: { gameId: string }) {
   const [tick, setTick] = useState(0);
   const [boardWidth, setBoardWidth] = useState(720);
   const [stakeVerifying, setStakeVerifying] = useState(false);
-  const { analysis, analyzeFen, stopAnalysis } = useStockfish();
+  const [postGameAnalysis, setPostGameAnalysis] = useState<PostGameAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const { analysis, analyzeFen, analyzeFenOnce, stopAnalysis } = useStockfish();
 
   const myColor = getMyColor(game, username);
   const displayTimes = useMemo(() => getLiveDisplayTimes(game), [game, tick]);
@@ -139,6 +223,7 @@ export function GameClient({ gameId }: { gameId: string }) {
     }
     return "--";
   }, [analysis.scoreCp, analysis.scoreMate]);
+  const analysisPath = useMemo(() => buildAnalysisPath(postGameAnalysis?.timeline || [], 720, 180), [postGameAnalysis]);
   const canMove = game && game.status === "active" && ((game.turn === "w" && myColor === "white") || (game.turn === "b" && myColor === "black"));
   const canJoin = Boolean(game && username && game.white !== username && !game.black);
   const canAbort = Boolean(game && username && game.createdBy === username && game.isAbortable && game.status !== "finished");
@@ -435,6 +520,53 @@ export function GameClient({ gameId }: { gameId: string }) {
     }
   }
 
+  async function analyzeCompletedGame() {
+    if (!game || !game.result) {
+      return;
+    }
+
+    setAnalysisLoading(true);
+    setError(null);
+
+    try {
+      const initial = new Chess();
+      const fens = [initial.fen(), ...game.moves.map((move) => move.fen)];
+      const scores: number[] = [];
+
+      for (const fen of fens) {
+        const result = await analyzeFenOnce(fen, 10);
+        scores.push(toWhitePerspectiveScore(fen, result));
+      }
+
+      const reviews: MoveReview[] = game.moves.map((move, index) => {
+        const scoreBefore = scores[index] ?? 0;
+        const scoreAfter = scores[index + 1] ?? scoreBefore;
+        const centipawnLoss = move.color === "w" ? Math.max(0, scoreBefore - scoreAfter) : Math.max(0, scoreAfter - scoreBefore);
+        return {
+          ply: index + 1,
+          moveNumber: Math.floor(index / 2) + 1,
+          color: move.color,
+          san: move.san,
+          scoreBefore,
+          scoreAfter,
+          centipawnLoss,
+          verdict: classifyLoss(centipawnLoss),
+        };
+      });
+
+      setPostGameAnalysis({
+        timeline: scores,
+        reviews,
+        white: buildSummary(reviews, "w"),
+        black: buildSummary(reviews, "b"),
+      });
+    } catch (analysisError) {
+      setError(analysisError instanceof Error ? analysisError.message : "Game analysis failed.");
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }
+
   return (
     <main className="page-shell game-page-shell">
       <div className="topbar">
@@ -593,6 +725,47 @@ export function GameClient({ gameId }: { gameId: string }) {
                 <span className="analysis-chip">Depth {analysis.depth || "--"}</span>
                 <span className="analysis-chip">Best {analysis.bestMove || "--"}</span>
               </div>
+              {game.result ? (
+                <div className="panel post-game-analysis-panel">
+                  <div className="panel-heading">
+                    <h2>Computer Analysis</h2>
+                    <span className="panel-hint">Runs locally in your browser</span>
+                  </div>
+                  <div className="button-row compact-actions">
+                    <button className="primary small-button" onClick={() => void analyzeCompletedGame()} disabled={analysisLoading || !analysis.ready}>
+                      {analysisLoading ? "Analyzing..." : "Analyze completed game"}
+                    </button>
+                  </div>
+                  {postGameAnalysis ? (
+                    <div className="analysis-grid top-gap">
+                      <div className="analysis-chart-card">
+                        <svg className="analysis-chart" viewBox="0 0 720 180" preserveAspectRatio="none" aria-label="Evaluation chart">
+                          <line x1="0" y1="90" x2="720" y2="90" className="analysis-axis" />
+                          <path d={analysisPath} className="analysis-line" />
+                        </svg>
+                      </div>
+                      <div className="analysis-summary-card">
+                        <div className="analysis-player-summary">
+                          <strong>@{game.white}</strong>
+                          <span>Accuracy {postGameAnalysis.white.accuracy}%</span>
+                          <span>Inaccuracies {postGameAnalysis.white.inaccuracies}</span>
+                          <span>Mistakes {postGameAnalysis.white.mistakes}</span>
+                          <span>Blunders {postGameAnalysis.white.blunders}</span>
+                          <span>Avg CPL {postGameAnalysis.white.averageCentipawnLoss.toFixed(0)}</span>
+                        </div>
+                        <div className="analysis-player-summary">
+                          <strong>@{game.black || "black"}</strong>
+                          <span>Accuracy {postGameAnalysis.black.accuracy}%</span>
+                          <span>Inaccuracies {postGameAnalysis.black.inaccuracies}</span>
+                          <span>Mistakes {postGameAnalysis.black.mistakes}</span>
+                          <span>Blunders {postGameAnalysis.black.blunders}</span>
+                          <span>Avg CPL {postGameAnalysis.black.averageCentipawnLoss.toFixed(0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </>
           )}
         </div>

@@ -22,8 +22,21 @@ const INITIAL_STATE: AnalysisState = {
   pv: [],
 };
 
+export type StockfishResult = {
+  depth: number;
+  scoreCp: number | null;
+  scoreMate: number | null;
+  bestMove: string | null;
+  pv: string[];
+};
+
 export function useStockfish() {
   const workerRef = useRef<Worker | null>(null);
+  const latestRef = useRef<AnalysisState>(INITIAL_STATE);
+  const pendingRef = useRef<{
+    resolve: (value: StockfishResult) => void;
+    reject: (error: Error) => void;
+  } | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisState>(INITIAL_STATE);
 
   useEffect(() => {
@@ -38,7 +51,11 @@ export function useStockfish() {
       const message = event.data;
 
       if (message === "uciok" || message === "readyok") {
-        setAnalysis((state) => ({ ...state, ready: true }));
+        setAnalysis((state) => {
+          const next = { ...state, ready: true };
+          latestRef.current = next;
+          return next;
+        });
         return;
       }
 
@@ -48,23 +65,42 @@ export function useStockfish() {
         const mateMatch = message.match(/score mate\s+(-?\d+)/);
         const pvMatch = message.match(/ pv\s+(.+)$/);
 
-        setAnalysis((state) => ({
-          ...state,
-          depth: depthMatch ? Number(depthMatch[1]) : state.depth,
-          scoreCp: cpMatch ? Number(cpMatch[1]) : state.scoreCp,
-          scoreMate: mateMatch ? Number(mateMatch[1]) : state.scoreMate,
-          pv: pvMatch ? pvMatch[1].trim().split(/\s+/) : state.pv,
-        }));
+        setAnalysis((state) => {
+          const next = {
+            ...state,
+            depth: depthMatch ? Number(depthMatch[1]) : state.depth,
+            scoreCp: cpMatch ? Number(cpMatch[1]) : state.scoreCp,
+            scoreMate: mateMatch ? Number(mateMatch[1]) : state.scoreMate,
+            pv: pvMatch ? pvMatch[1].trim().split(/\s+/) : state.pv,
+          };
+          latestRef.current = next;
+          return next;
+        });
         return;
       }
 
       if (message.startsWith("bestmove ")) {
         const bestMove = message.split(" ")[1] || null;
-        setAnalysis((state) => ({
-          ...state,
-          thinking: false,
-          bestMove,
-        }));
+        setAnalysis((state) => {
+          const next = {
+            ...state,
+            thinking: false,
+            bestMove,
+          };
+          latestRef.current = next;
+          return next;
+        });
+
+        if (pendingRef.current) {
+          pendingRef.current.resolve({
+            depth: latestRef.current.depth,
+            scoreCp: latestRef.current.scoreCp,
+            scoreMate: latestRef.current.scoreMate,
+            bestMove,
+            pv: latestRef.current.pv,
+          });
+          pendingRef.current = null;
+        }
       }
     };
 
@@ -77,6 +113,10 @@ export function useStockfish() {
       worker.postMessage("quit");
       worker.terminate();
       workerRef.current = null;
+      if (pendingRef.current) {
+        pendingRef.current.reject(new Error("Stockfish worker terminated."));
+        pendingRef.current = null;
+      }
     };
   }, []);
 
@@ -94,11 +134,37 @@ export function useStockfish() {
       bestMove: null,
       pv: [],
     }));
+    latestRef.current = {
+      ...latestRef.current,
+      thinking: true,
+      depth: 0,
+      scoreCp: null,
+      scoreMate: null,
+      bestMove: null,
+      pv: [],
+    };
 
     workerRef.current.postMessage("stop");
     workerRef.current.postMessage("ucinewgame");
     workerRef.current.postMessage(`position fen ${fen}`);
     workerRef.current.postMessage(`go depth ${depth}`);
+  }
+
+  function analyzeFenOnce(fen: string, depth = 12) {
+    if (!workerRef.current) {
+      return Promise.reject(new Error("Stockfish worker is not ready."));
+    }
+
+    if (pendingRef.current) {
+      pendingRef.current.reject(new Error("Previous Stockfish request interrupted."));
+      pendingRef.current = null;
+    }
+
+    analyzeFen(fen, depth);
+
+    return new Promise<StockfishResult>((resolve, reject) => {
+      pendingRef.current = { resolve, reject };
+    });
   }
 
   function stopAnalysis() {
@@ -107,11 +173,17 @@ export function useStockfish() {
     }
     workerRef.current.postMessage("stop");
     setAnalysis((state) => ({ ...state, thinking: false }));
+    latestRef.current = { ...latestRef.current, thinking: false };
+    if (pendingRef.current) {
+      pendingRef.current.reject(new Error("Stockfish analysis stopped."));
+      pendingRef.current = null;
+    }
   }
 
   return {
     analysis,
     analyzeFen,
+    analyzeFenOnce,
     stopAnalysis,
   };
 }
