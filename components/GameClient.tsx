@@ -112,6 +112,7 @@ async function api<T>(url: string, options: RequestInit = {}, token?: string | n
 export function GameClient({ gameId }: { gameId: string }) {
   const sharePath = `/game/${gameId}`;
   const boardStageRef = useRef<HTMLDivElement | null>(null);
+  const boardColumnRef = useRef<HTMLDivElement | null>(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [username, setUsername] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -148,22 +149,24 @@ export function GameClient({ gameId }: { gameId: string }) {
   }, []);
 
   useEffect(() => {
-    const element = boardStageRef.current;
-    if (!element) {
+    const stageElement = boardStageRef.current;
+    const columnElement = boardColumnRef.current;
+    if (!stageElement || !columnElement) {
       return;
     }
 
     const update = () => {
-      const rect = element.getBoundingClientRect();
-      const viewportHeightCap = Math.max(260, Math.floor(window.innerHeight - rect.top - 24));
-      const nextWidth = Math.max(260, Math.min(920, Math.min(Math.floor(element.clientWidth), viewportHeightCap)));
+      const rect = stageElement.getBoundingClientRect();
+      const availableHeight = Math.max(260, Math.floor(window.innerHeight - rect.top - 72));
+      const availableWidth = Math.max(260, Math.floor(columnElement.clientWidth));
+      const nextWidth = Math.max(260, Math.min(920, availableWidth, availableHeight));
       setBoardWidth(nextWidth);
     };
 
     update();
 
     const observer = new ResizeObserver(() => update());
-    observer.observe(element);
+    observer.observe(columnElement);
     window.addEventListener("resize", update);
 
     return () => {
@@ -548,7 +551,7 @@ export function GameClient({ gameId }: { gameId: string }) {
           {error ? <div className="status-box error">{error}</div> : null}
         </aside>
 
-        <div className="board-column">
+        <div className="board-column" ref={boardColumnRef}>
           <div className="board-wrap clean-board-wrap">
           {!game ? (
             <div className="subtle">Loading game...</div>
