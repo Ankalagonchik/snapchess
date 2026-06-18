@@ -235,7 +235,7 @@ export default function HomePage() {
                 </button>
               </div>
               <div className="inline-note subtle">
-                Current user: <span className="mono">{username ? `@${username}` : "not connected"}</span>
+                Current user: {username ? <a className="profile-link mono" href={`/player/${username}`}>@{username}</a> : <span className="mono">not connected</span>}
               </div>
               {lobby.me ? (
                 <div className="stats-grid">
@@ -344,7 +344,7 @@ export default function HomePage() {
                 <a key={game.id} className="card-button link-card" href={`/game/${game.id}`} target="_blank" rel="noreferrer">
                   <div className="card-topline">
                     <h4>
-                      {game.timeControl.label} {game.whiteRating ? <span className="subtle">@{game.white} ({game.whiteRating})</span> : null}
+                        {game.timeControl.label} {game.whiteRating ? <span className="subtle"><a className="profile-link" href={`/player/${game.white}`}>@{game.white}</a> ({game.whiteRating})</span> : null}
                     </h4>
                     <div className="card-chip-row">
                       <span className={`card-chip ${game.rated ? "" : "muted"}`}>{game.rated ? "rated" : "casual"}</span>
@@ -353,7 +353,7 @@ export default function HomePage() {
                   </div>
                   <div className="card-meta-row">
                     <span className="mono">{game.inviteCode}</span>
-                    <span>White: @{game.white}</span>
+                    <span>White: <a className="profile-link" href={`/player/${game.white}`}>@{game.white}</a></span>
                   </div>
                   <div className="subtle">Invite: {game.reservedOpponent ? `@${game.reservedOpponent}` : "public"}</div>
                 </a>
@@ -421,7 +421,7 @@ export default function HomePage() {
               {activeLeaders.map((player, index) => (
                 <div className="leaderboard-row" key={`${leaderboardView}-${player.username}`}>
                   <span className="leaderboard-rank">{index + 1}</span>
-                  <span className="leaderboard-name">@{player.username}</span>
+                  <a className="leaderboard-name profile-link" href={`/player/${player.username}`}>@{player.username}</a>
                   <span className="leaderboard-value">{leaderboardView === "rating" ? player.rating : player.netHive.toFixed(3)}</span>
                 </div>
               ))}

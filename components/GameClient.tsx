@@ -581,7 +581,7 @@ export function GameClient({ gameId }: { gameId: string }) {
             <div className="player-card-head">
               <div className="player-card-name-row">
                 <span className="presence-dot" />
-                <span className="player-card-title">@{game?.black || "waiting"}</span>
+                {game?.black ? <a className="player-card-title profile-link" href={`/player/${game.black}`}>@{game.black}</a> : <span className="player-card-title">@waiting</span>}
                 {game?.blackRating ? <span className="player-card-rating">{game.blackRating}</span> : null}
               </div>
             </div>
@@ -609,7 +609,7 @@ export function GameClient({ gameId }: { gameId: string }) {
             <div className="player-card-head">
               <div className="player-card-name-row">
                 <span className="presence-dot" />
-                <span className="player-card-title">@{game?.white || "waiting"}</span>
+                {game?.white ? <a className="player-card-title profile-link" href={`/player/${game.white}`}>@{game.white}</a> : <span className="player-card-title">@waiting</span>}
                 {game?.whiteRating ? <span className="player-card-rating">{game.whiteRating}</span> : null}
               </div>
             </div>
