@@ -225,18 +225,18 @@ export default function HomePage() {
       </section>
 
       <section className="home-layout">
-        <div className="stack lobby-side">
-          <div className="panel">
+        <aside className="stack home-left-rail">
+          <div className="panel account-panel-compact">
             <div className="panel-heading">
               <h2>Account</h2>
-              <span className="panel-hint">Hive Keychain session</span>
+              <span className="panel-hint">Hive session</span>
             </div>
-            <div className="form-grid">
+            <div className="form-grid compact-form-grid">
               <div className="field">
                 <label>Hive username</label>
                 <input value={usernameInput} onChange={(event) => setUsernameInput(event.target.value)} placeholder="meno" />
               </div>
-              <div className="button-row">
+              <div className="button-row compact-actions">
                 <button className="primary" onClick={loginWithKeychain} disabled={loading}>
                   Connect Hive Keychain
                 </button>
@@ -244,68 +244,35 @@ export default function HomePage() {
                   Log out
                 </button>
               </div>
-              <div className="inline-note subtle">
-                Current user: {username ? <a className="profile-link mono" href={`/player/${username}`}>@{username}</a> : <span className="mono">not connected</span>}
+              <div className="inline-note subtle account-inline-row">
+                {username ? <a className="profile-link mono" href={`/player/${username}`}>@{username}</a> : <span className="mono">Not connected</span>}
               </div>
               {lobby.me ? (
-                <div className="stats-grid">
-                  <div className="stat-box">
-                    <span className="stat-label">Rating</span>
-                    <strong>{lobby.me.rating}</strong>
-                  </div>
-                  <div className="stat-box">
-                    <span className="stat-label">Peak</span>
-                    <strong>{lobby.me.peakRating}</strong>
-                  </div>
-                  <div className="stat-box">
-                    <span className="stat-label">Record</span>
-                    <strong>
-                      {lobby.me.wins}-{lobby.me.losses}-{lobby.me.draws}
-                    </strong>
-                  </div>
-                  <div className="stat-box">
-                    <span className="stat-label">Net HIVE</span>
-                    <strong>{lobby.me.netHive.toFixed(3)}</strong>
-                  </div>
-                </div>
-              ) : null}
-              {username ? (
-                <div className="button-row top-gap">
-                  <a className="ghost link-button" href={`/player/${username}`}>
-                    Open profile
-                  </a>
+                <div className="stats-grid compact-stats-grid">
+                  <div className="stat-box"><span className="stat-label">Rating</span><strong>{lobby.me.rating}</strong></div>
+                  <div className="stat-box"><span className="stat-label">Peak</span><strong>{lobby.me.peakRating}</strong></div>
+                  <div className="stat-box"><span className="stat-label">Record</span><strong>{lobby.me.wins}-{lobby.me.losses}-{lobby.me.draws}</strong></div>
+                  <div className="stat-box"><span className="stat-label">Net HIVE</span><strong>{lobby.me.netHive.toFixed(3)}</strong></div>
                 </div>
               ) : null}
             </div>
           </div>
 
-          {error ? <div className="status-box error">{error}</div> : null}
-
-          <div className="panel">
+          <div className="panel compact-side-panel">
             <div className="panel-heading">
               <h2>Leaderboards</h2>
-              <span className="panel-hint">Rating and HIVE won</span>
+              <span className="panel-hint">Rating and HIVE</span>
             </div>
             <div className="leaderboard-switch" role="tablist" aria-label="Leaderboard view">
-              <button
-                type="button"
-                className={`leaderboard-tab ${leaderboardView === "rating" ? "active" : ""}`}
-                onClick={() => setLeaderboardView("rating")}
-              >
+              <button type="button" className={`leaderboard-tab ${leaderboardView === "rating" ? "active" : ""}`} onClick={() => setLeaderboardView("rating")}>
                 Rating
               </button>
-              <button
-                type="button"
-                className={`leaderboard-tab ${leaderboardView === "hive" ? "active" : ""}`}
-                onClick={() => setLeaderboardView("hive")}
-              >
+              <button type="button" className={`leaderboard-tab ${leaderboardView === "hive" ? "active" : ""}`} onClick={() => setLeaderboardView("hive")}>
                 HIVE Won
               </button>
             </div>
-            <div className="leaderboard-list">
-              {activeLeaders.length === 0 ? (
-                <div className="subtle">{leaderboardView === "rating" ? "No rated games yet." : "No HIVE results yet."}</div>
-              ) : null}
+            <div className="leaderboard-list compact-leaderboard-list">
+              {activeLeaders.length === 0 ? <div className="subtle">{leaderboardView === "rating" ? "No rated games yet." : "No HIVE results yet."}</div> : null}
               {activeLeaders.map((player, index) => (
                 <div className="leaderboard-row" key={`${leaderboardView}-${player.username}`}>
                   <span className="leaderboard-rank">{index + 1}</span>
@@ -315,14 +282,14 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        </div>
+        </aside>
 
-        <div className="stack lobby-main">
+        <section className="stack home-center-column">
           <div className="play-shell panel">
             <div className="play-shell-header">
               <div className="play-tab active">Quick Pairing</div>
               <div className="play-tab">Open Lobby</div>
-              <div className="play-tab">Challenge Match</div>
+              <div className="play-tab">Custom Match</div>
             </div>
             <div className="quick-grid">
               {TIME_CONTROL_OPTIONS.map((item) => {
@@ -342,19 +309,17 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="panel">
+          <div className="panel compact-open-games-panel">
             <div className="panel-heading">
               <h2>Open Games</h2>
               <span className="panel-hint">Public pairings and direct invites</span>
             </div>
-            <div className="list">
+            <div className="list compact-open-games-list">
               {lobby.openGames.length === 0 ? <div className="empty-state subtle">No open games yet.</div> : null}
               {lobby.openGames.map((game) => (
-                <a key={game.id} className="card-button link-card" href={`/game/${game.id}`} target="_blank" rel="noreferrer">
+                <a key={game.id} className="card-button link-card open-game-row" href={`/game/${game.id}`} target="_blank" rel="noreferrer">
                   <div className="card-topline">
-                    <h4>
-                        {game.timeControl.label} {game.whiteRating ? <span className="subtle"><a className="profile-link" href={`/player/${game.white}`}>@{game.white}</a> ({game.whiteRating})</span> : null}
-                    </h4>
+                    <h4>{game.timeControl.label}</h4>
                     <div className="card-chip-row">
                       <span className={`card-chip ${game.rated ? "" : "muted"}`}>{game.rated ? "rated" : "casual"}</span>
                       <span className="card-chip">{game.stake.amount > 0 ? `${game.stake.amount.toFixed(3)} HIVE` : "no stake"}</span>
@@ -362,21 +327,19 @@ export default function HomePage() {
                   </div>
                   <div className="card-meta-row">
                     <span className="mono">{game.inviteCode}</span>
-                    <span>White: <a className="profile-link" href={`/player/${game.white}`}>@{game.white}</a></span>
+                    <span><a className="profile-link" href={`/player/${game.white}`}>@{game.white}</a>{game.whiteRating ? ` (${game.whiteRating})` : ""}</span>
                   </div>
-                  <div className="subtle">Invite: {game.reservedOpponent ? `@${game.reservedOpponent}` : "public"}</div>
                 </a>
               ))}
             </div>
           </div>
+        </section>
 
-        </div>
-
-        <div className="stack lobby-side">
-          <div className="panel action-panel">
+        <aside className="stack home-right-rail">
+          <div className="panel action-panel home-action-panel">
             <div className="panel-heading">
               <h2>Create Game</h2>
-              <span className="panel-hint">Lichess-inspired action block</span>
+              <span className="panel-hint">Challenge or open public</span>
             </div>
             <div className="form-grid">
               <div className="field">
@@ -389,12 +352,10 @@ export default function HomePage() {
                   ))}
                 </select>
               </div>
-
               <div className="field">
                 <label>Invite username</label>
                 <input value={reservedOpponent} onChange={(event) => setReservedOpponent(event.target.value)} placeholder="eddiespino" />
               </div>
-
               <div className="two-col action-panel-grid">
                 <div className="field">
                   <label>Stake in HIVE</label>
@@ -408,46 +369,38 @@ export default function HomePage() {
                   </select>
                 </div>
               </div>
-
               <button className="primary big-action" onClick={createChallengeGame} disabled={!token || loading}>
                 Create and open table
               </button>
-
-              <div className="inline-note subtle">
-                Stake games use the `justdebateonline` escrow account with a 4% fee and a 0.002 HIVE minimum.
+              <div className="inline-note subtle compact-side-note">
+                Uses `justdebateonline` escrow with 4% fee and a 0.002 HIVE minimum.
               </div>
             </div>
           </div>
 
-          <div className="panel">
+          <div className="panel compact-side-panel">
             <div className="panel-heading">
               <h2>My Games</h2>
               <span className="panel-hint">Resume in a new tab</span>
             </div>
-            <div className="list">
+            <div className="list compact-game-list">
               {lobby.myGames.length === 0 ? <div className="empty-state subtle">Your games will appear here.</div> : null}
               {lobby.myGames.map((game) => (
-                <a key={game.id} className="card-button link-card" href={`/game/${game.id}`} target="_blank" rel="noreferrer">
+                <a key={game.id} className="card-button link-card compact-game-card" href={`/game/${game.id}`} target="_blank" rel="noreferrer">
                   <div className="card-topline">
-                    <h4>
-                      {game.white} vs {game.black ?? "..."}
-                    </h4>
+                    <h4>{game.white} vs {game.black ?? "..."}</h4>
                     <span className="card-chip muted">{game.result ? game.result.winner === "draw" ? "Draw" : `${game.result.winner} won` : game.status}</span>
                   </div>
                   <div className="card-meta-row">
                     <span>{game.timeControl.label}</span>
                     <span className="mono">{game.inviteCode}</span>
                   </div>
-                  {game.result ? <div className="subtle compact-row">{game.result.message}</div> : null}
-                  <div className="subtle compact-row">
-                    {game.rated ? "Rated" : "Casual"}
-                    {game.stake.amount > 0 ? ` • ${game.stake.amount.toFixed(3)} HIVE` : " • No stake"}
-                  </div>
+                  {game.result ? <div className="subtle compact-row clamp-two-lines">{game.result.message}</div> : null}
                 </a>
               ))}
             </div>
           </div>
-        </div>
+        </aside>
       </section>
     </main>
   );
