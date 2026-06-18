@@ -234,6 +234,19 @@ select {
   align-items: start;
 }
 
+.home-layout {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 240px minmax(0, 1fr) 300px;
+  align-items: start;
+}
+
+.home-left-rail,
+.home-center-column,
+.home-right-rail {
+  min-width: 0;
+}
+
 .lobby-side,
 .lobby-main {
   min-width: 0;
@@ -326,6 +339,59 @@ select {
 
 .action-panel {
   padding: 18px;
+}
+
+.home-action-panel {
+  min-height: 0;
+}
+
+.compact-side-panel {
+  padding: 12px;
+}
+
+.compact-form-grid {
+  gap: 10px;
+}
+
+.compact-stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-inline-row {
+  justify-content: space-between;
+}
+
+.compact-side-note {
+  font-size: 0.78rem;
+}
+
+.compact-open-games-panel,
+.home-action-panel {
+  min-height: 0;
+}
+
+.compact-open-games-list,
+.compact-game-list,
+.profile-games-list {
+  gap: 8px;
+}
+
+.open-game-row,
+.compact-game-card,
+.profile-game-card {
+  padding: 10px 12px;
+}
+
+.compact-leaderboard-list {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.clamp-two-lines {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .action-panel-grid {
@@ -1088,12 +1154,25 @@ select {
   .hero,
   .grid,
   .lobby-layout,
+  .home-layout,
   .profile-layout {
     grid-template-columns: 1fr;
   }
 
   .quick-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-left-rail {
+    order: 1;
+  }
+
+  .home-center-column {
+    order: 2;
+  }
+
+  .home-right-rail {
+    order: 3;
   }
 
   .game-layout {
@@ -1175,6 +1254,10 @@ select {
 
   .two-col,
   .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-panel-grid {
     grid-template-columns: 1fr;
   }
 
