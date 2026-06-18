@@ -449,9 +449,8 @@ select {
   --game-side-width: 240px;
   display: grid;
   gap: 18px;
-  grid-template-columns: var(--game-side-width) auto var(--game-side-width);
+  grid-template-columns: var(--game-side-width) minmax(0, 1fr) var(--game-side-width);
   align-items: start;
-  justify-content: center;
 }
 
 .board-wrap {
@@ -501,12 +500,11 @@ select {
 .board-column {
   min-width: 0;
   align-self: start;
-  display: flex;
-  justify-content: center;
+  width: 100%;
 }
 
 .clean-board-wrap {
-  width: fit-content;
+  width: 100%;
   padding: 0;
   background: transparent;
   border: none;
@@ -517,6 +515,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   padding: 0;
   border: none;
   border-radius: 0;
