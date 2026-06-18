@@ -71,6 +71,16 @@ select {
 .site-actions {
   max-width: 520px;
   text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.site-status-inline {
+  max-width: 340px;
+  font-size: 0.82rem;
+  text-align: right;
 }
 
 .site-status-pill {
@@ -237,7 +247,7 @@ select {
 .home-layout {
   display: grid;
   gap: 14px;
-  grid-template-columns: 240px minmax(0, 1fr) 300px;
+  grid-template-columns: 220px minmax(0, 1fr) 280px;
   align-items: start;
 }
 
@@ -259,6 +269,7 @@ select {
 .play-shell {
   padding: 0;
   overflow: hidden;
+  min-height: 0;
 }
 
 .play-shell-header {
@@ -293,7 +304,7 @@ select {
 .time-tile {
   display: grid;
   place-items: center;
-  min-height: 124px;
+  min-height: 112px;
   border-radius: 10px;
   border: 1px solid rgba(153, 183, 216, 0.1);
   background: linear-gradient(180deg, rgba(54, 47, 51, 0.98), rgba(40, 35, 40, 0.98));
@@ -322,6 +333,10 @@ select {
   margin-top: 8px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.time-tile-custom {
+  border-style: dashed;
 }
 
 .hero-card-compact {
@@ -363,6 +378,10 @@ select {
 
 .compact-side-note {
   font-size: 0.78rem;
+}
+
+.account-inline-row {
+  align-items: center;
 }
 
 .compact-open-games-panel,
@@ -1203,6 +1222,8 @@ select {
   .site-actions {
     max-width: none;
     text-align: left;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
 
@@ -1246,6 +1267,11 @@ select {
   .quick-grid {
     grid-template-columns: 1fr;
     padding: 12px;
+  }
+
+  .site-status-inline {
+    max-width: none;
+    text-align: left;
   }
 
   .time-tile {

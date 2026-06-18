@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { LeaderboardEntry, PublicGame } from "@/lib/types";
 
@@ -57,6 +57,7 @@ async function api<T>(url: string, options: RequestInit = {}, token?: string | n
 }
 
 export default function HomePage() {
+  const createPanelRef = useRef<HTMLDivElement | null>(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [username, setUsername] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -215,7 +216,7 @@ export default function HomePage() {
           <div className="topbar-title">SnapChess</div>
         </div>
         <div className="site-actions">
-          <div className="site-status-pill">{status}</div>
+          <div className="site-status-inline subtle">{status}</div>
           {username ? (
             <a className="ghost link-button" href={`/player/${username}`}>
               Profile @{username}
@@ -231,31 +232,40 @@ export default function HomePage() {
               <h2>Account</h2>
               <span className="panel-hint">Hive session</span>
             </div>
-            <div className="form-grid compact-form-grid">
-              <div className="field">
-                <label>Hive username</label>
-                <input value={usernameInput} onChange={(event) => setUsernameInput(event.target.value)} placeholder="meno" />
+            {username ? (
+              <div className="form-grid compact-form-grid">
+                <div className="inline-note subtle account-inline-row">
+                  <span>Signed in as</span>
+                  <a className="profile-link mono" href={`/player/${username}`}>@{username}</a>
+                </div>
+                <div className="button-row compact-actions">
+                  <a className="ghost link-button" href={`/player/${username}`}>
+                    Open profile
+                  </a>
+                  <button className="ghost" onClick={logout}>
+                    Log out
+                  </button>
+                </div>
+                {lobby.me ? (
+                  <div className="stats-grid compact-stats-grid">
+                    <div className="stat-box"><span className="stat-label">Rating</span><strong>{lobby.me.rating}</strong></div>
+                    <div className="stat-box"><span className="stat-label">Peak</span><strong>{lobby.me.peakRating}</strong></div>
+                    <div className="stat-box"><span className="stat-label">Record</span><strong>{lobby.me.wins}-{lobby.me.losses}-{lobby.me.draws}</strong></div>
+                    <div className="stat-box"><span className="stat-label">Net HIVE</span><strong>{lobby.me.netHive.toFixed(3)}</strong></div>
+                  </div>
+                ) : null}
               </div>
-              <div className="button-row compact-actions">
+            ) : (
+              <div className="form-grid compact-form-grid">
+                <div className="field">
+                  <label>Hive username</label>
+                  <input value={usernameInput} onChange={(event) => setUsernameInput(event.target.value)} placeholder="meno" />
+                </div>
                 <button className="primary" onClick={loginWithKeychain} disabled={loading}>
                   Connect Hive Keychain
                 </button>
-                <button className="ghost" onClick={logout} disabled={!token}>
-                  Log out
-                </button>
               </div>
-              <div className="inline-note subtle account-inline-row">
-                {username ? <a className="profile-link mono" href={`/player/${username}`}>@{username}</a> : <span className="mono">Not connected</span>}
-              </div>
-              {lobby.me ? (
-                <div className="stats-grid compact-stats-grid">
-                  <div className="stat-box"><span className="stat-label">Rating</span><strong>{lobby.me.rating}</strong></div>
-                  <div className="stat-box"><span className="stat-label">Peak</span><strong>{lobby.me.peakRating}</strong></div>
-                  <div className="stat-box"><span className="stat-label">Record</span><strong>{lobby.me.wins}-{lobby.me.losses}-{lobby.me.draws}</strong></div>
-                  <div className="stat-box"><span className="stat-label">Net HIVE</span><strong>{lobby.me.netHive.toFixed(3)}</strong></div>
-                </div>
-              ) : null}
-            </div>
+            )}
           </div>
 
           <div className="panel compact-side-panel">
@@ -306,6 +316,14 @@ export default function HomePage() {
                   </button>
                 );
               })}
+              <button
+                type="button"
+                className="time-tile time-tile-custom"
+                onClick={() => createPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              >
+                <span className="time-tile-main">Custom</span>
+                <span className="time-tile-sub">Create room</span>
+              </button>
             </div>
           </div>
 
@@ -336,7 +354,7 @@ export default function HomePage() {
         </section>
 
         <aside className="stack home-right-rail">
-          <div className="panel action-panel home-action-panel">
+          <div className="panel action-panel home-action-panel" ref={createPanelRef}>
             <div className="panel-heading">
               <h2>Create Game</h2>
               <span className="panel-hint">Challenge or open public</span>
