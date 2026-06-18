@@ -347,6 +347,9 @@ export default function HomePage() {
                 </a>
               </div>
             </div>
+            <div className="inline-note subtle pairing-note">
+              Open rooms appear below. Create a room only if there is no suitable table for your time control.
+            </div>
           </div>
 
           <div className="panel compact-open-games-panel">
@@ -376,23 +379,6 @@ export default function HomePage() {
         </section>
 
         <aside className="stack home-right-rail">
-          <div className="panel action-panel home-action-panel" ref={createPanelRef}>
-            <div className="panel-heading">
-              <h2>Create Game</h2>
-              <span className="panel-hint">Create room</span>
-            </div>
-            <div className="create-summary-stack">
-              <div className="summary-chip-row">
-                <span className="summary-chip">{timeControl}</span>
-                <span className="summary-chip muted">{rated ? "Rated" : "Casual"}</span>
-              </div>
-              <button className="primary big-action" onClick={() => setCreateModalOpen(true)} disabled={!token}>
-                Open create room dialog
-              </button>
-              <div className="compact-side-note subtle">4% fee on stake rooms, 0.002 HIVE minimum.</div>
-            </div>
-          </div>
-
           <div className="panel compact-side-panel">
             <div className="panel-heading">
               <h2>My Games</h2>
