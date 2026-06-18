@@ -446,10 +446,12 @@ select {
 }
 
 .game-layout {
+  --game-side-width: 240px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 170px minmax(0, 1fr) 250px;
+  gap: 18px;
+  grid-template-columns: var(--game-side-width) auto var(--game-side-width);
   align-items: start;
+  justify-content: center;
 }
 
 .board-wrap {
@@ -462,6 +464,7 @@ select {
 .game-meta-column {
   gap: 12px;
   min-width: 0;
+  width: var(--game-side-width);
 }
 
 .game-summary-card {
@@ -498,9 +501,12 @@ select {
 .board-column {
   min-width: 0;
   align-self: start;
+  display: flex;
+  justify-content: center;
 }
 
 .clean-board-wrap {
+  width: fit-content;
   padding: 0;
   background: transparent;
   border: none;
@@ -520,6 +526,7 @@ select {
 .game-rail {
   gap: 10px;
   min-width: 0;
+  width: var(--game-side-width);
 }
 
 .player-card {
@@ -748,6 +755,7 @@ select {
   padding: 6px 8px;
   font-size: 0.74rem;
   align-self: start;
+  width: 100%;
 }
 
 .list {
@@ -948,18 +956,22 @@ select {
 
   .game-layout {
     grid-template-columns: 1fr;
+    justify-content: stretch;
   }
 
   .game-meta-column {
     order: 1;
+    width: auto;
   }
 
   .board-column {
     order: 2;
+    justify-content: stretch;
   }
 
   .game-rail {
     order: 3;
+    width: auto;
   }
 
   .site-bar {
