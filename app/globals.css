@@ -68,6 +68,11 @@ select {
   gap: 4px;
 }
 
+.site-subtitle {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .site-actions {
   max-width: 520px;
   text-align: right;
@@ -281,6 +286,22 @@ select {
   background: rgba(255, 255, 255, 0.015);
 }
 
+.simple-header {
+  justify-content: space-between;
+}
+
+.play-shell-title {
+  margin-top: 4px;
+  color: #edf3ff;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.compact-play-hint {
+  max-width: 220px;
+  text-align: right;
+}
+
 .play-tab {
   padding: 14px 0;
   color: var(--muted);
@@ -337,6 +358,26 @@ select {
 
 .time-tile-custom {
   border-style: dashed;
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
+.selection-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.selection-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .hero-card-compact {
@@ -443,6 +484,35 @@ select {
 
 .action-panel-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.create-summary-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.summary-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.summary-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(153, 183, 216, 0.12);
+  color: #e8edf6;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.summary-chip.muted {
+  color: var(--muted);
 }
 
 .big-action {
@@ -1278,6 +1348,11 @@ select {
     justify-content: flex-start;
     flex-wrap: wrap;
   }
+
+  .compact-play-hint {
+    max-width: none;
+    text-align: left;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1320,6 +1395,12 @@ select {
   .quick-grid {
     grid-template-columns: 1fr;
     padding: 12px;
+  }
+
+  .selection-bar {
+    padding: 0 12px 12px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .site-status-inline {

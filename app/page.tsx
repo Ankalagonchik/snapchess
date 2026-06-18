@@ -216,6 +216,7 @@ export default function HomePage() {
         <div className="site-brand">
           <div className="section-eyebrow">Snapie Hive Chess</div>
           <div className="topbar-title">SnapChess</div>
+          <div className="site-subtitle">Fast Hive-native play with optional HIVE stakes.</div>
         </div>
         <div className="site-actions">
           <div className="site-status-inline subtle">{status}</div>
@@ -298,10 +299,12 @@ export default function HomePage() {
 
         <section className="stack home-center-column">
           <div className="play-shell panel">
-            <div className="play-shell-header">
-              <div className="play-tab active">Quick Pairing</div>
-              <div className="play-tab">Open Lobby</div>
-              <div className="play-tab">Custom Match</div>
+            <div className="play-shell-header simple-header">
+              <div>
+                <div className="section-eyebrow">Quick Pairing</div>
+                <div className="play-shell-title">Choose a time control</div>
+              </div>
+              <div className="panel-hint compact-play-hint">Then create a room or join one below.</div>
             </div>
             <div className="quick-grid">
               {TIME_CONTROL_OPTIONS.map((item) => {
@@ -329,6 +332,17 @@ export default function HomePage() {
                 <span className="time-tile-main">Custom</span>
                 <span className="time-tile-sub">Create room</span>
               </button>
+            </div>
+            <div className="selection-bar">
+              <div className="selection-copy">
+                <span className="selection-label">Selected</span>
+                <strong>{timeControl}</strong>
+              </div>
+              <div className="button-row compact-actions">
+                <button className="primary" onClick={() => setCreateModalOpen(true)} disabled={!token}>
+                  Create room
+                </button>
+              </div>
             </div>
           </div>
 
@@ -361,19 +375,20 @@ export default function HomePage() {
         <aside className="stack home-right-rail">
           <div className="panel action-panel home-action-panel" ref={createPanelRef}>
             <div className="panel-heading">
-              <h2>Actions</h2>
-              <span className="panel-hint">Create or challenge</span>
+              <h2>Create Game</h2>
+              <span className="panel-hint">Room settings</span>
             </div>
-            <div className="action-stack">
-              <button className="action-row-button" onClick={() => setCreateModalOpen(true)}>
-                <span>Create room for {timeControl}</span>
-              </button>
-              <button className="action-row-button ghostish" onClick={() => setCreateModalOpen(true)}>
-                <span>Challenge a friend</span>
-              </button>
-              <div className="inline-note subtle compact-side-note">
-                Selected: <strong>{timeControl}</strong>. Stake rooms use `justdebateonline` escrow with a 4% fee and a 0.002 HIVE minimum.
+            <div className="create-summary-stack">
+              <div className="summary-chip-row">
+                <span className="summary-chip">{timeControl}</span>
+                <span className="summary-chip muted">{rated ? "Rated" : "Casual"}</span>
               </div>
+              <div className="inline-note subtle compact-side-note">
+                Stake rooms use `justdebateonline` escrow with a 4% fee and a 0.002 HIVE minimum.
+              </div>
+              <button className="primary big-action" onClick={() => setCreateModalOpen(true)} disabled={!token}>
+                Open create room dialog
+              </button>
             </div>
           </div>
 
