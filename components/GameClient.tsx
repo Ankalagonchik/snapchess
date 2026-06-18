@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 
+import { useStockfish } from "@/hooks/useStockfish";
 import type { PublicGame } from "@/lib/types";
 
 function getStakeMemo(gameId: string, username: string) {
@@ -124,10 +125,20 @@ export function GameClient({ gameId }: { gameId: string }) {
   const [tick, setTick] = useState(0);
   const [boardWidth, setBoardWidth] = useState(720);
   const [stakeVerifying, setStakeVerifying] = useState(false);
+  const { analysis, analyzeFen, stopAnalysis } = useStockfish();
 
   const myColor = getMyColor(game, username);
   const displayTimes = useMemo(() => getLiveDisplayTimes(game), [game, tick]);
   const moveRows = useMemo(() => buildMoveRows(game), [game]);
+  const evalText = useMemo(() => {
+    if (analysis.scoreMate !== null) {
+      return `Mate ${analysis.scoreMate}`;
+    }
+    if (analysis.scoreCp !== null) {
+      return (analysis.scoreCp / 100).toFixed(2);
+    }
+    return "--";
+  }, [analysis.scoreCp, analysis.scoreMate]);
   const canMove = game && game.status === "active" && ((game.turn === "w" && myColor === "white") || (game.turn === "b" && myColor === "black"));
   const canJoin = Boolean(game && username && game.white !== username && !game.black);
   const canAbort = Boolean(game && username && game.createdBy === username && game.isAbortable && game.status !== "finished");
@@ -571,6 +582,17 @@ export function GameClient({ gameId }: { gameId: string }) {
               </div>
 
               {game.result ? <div className="status-box success result-banner">{game.result.message}</div> : null}
+              <div className="analysis-toolbar">
+                <button className="ghost small-button" onClick={() => game && analyzeFen(game.fen, 12)}>
+                  Analyze game
+                </button>
+                <button className="ghost small-button" onClick={stopAnalysis}>
+                  Stop analysis
+                </button>
+                <span className="analysis-chip">Eval {evalText}</span>
+                <span className="analysis-chip">Depth {analysis.depth || "--"}</span>
+                <span className="analysis-chip">Best {analysis.bestMove || "--"}</span>
+              </div>
             </>
           )}
         </div>

@@ -342,6 +342,9 @@ export default function HomePage() {
                 <button className="primary" onClick={() => setCreateModalOpen(true)} disabled={!token}>
                   Create room
                 </button>
+                <a className="ghost link-button" href={`/computer?timeControl=${encodeURIComponent(timeControl)}`}>
+                  Play vs Stockfish
+                </a>
               </div>
             </div>
           </div>
