@@ -237,8 +237,8 @@ export default function HomePage() {
             </div>
             {username ? (
               <div className="form-grid compact-form-grid">
-                <div className="inline-note subtle account-inline-row">
-                  <span>Signed in as</span>
+              <div className="inline-note subtle account-inline-row">
+                  <span>Signed in</span>
                   <a className="profile-link mono" href={`/player/${username}`}>@{username}</a>
                 </div>
                 <div className="button-row compact-actions">
@@ -301,10 +301,10 @@ export default function HomePage() {
           <div className="play-shell panel">
             <div className="play-shell-header simple-header">
               <div>
-                <div className="section-eyebrow">Quick Pairing</div>
-                <div className="play-shell-title">Choose a time control</div>
+              <div className="section-eyebrow">Quick Pairing</div>
+              <div className="play-shell-title">Choose a time control</div>
               </div>
-              <div className="panel-hint compact-play-hint">Then create a room or join one below.</div>
+              <div className="panel-hint compact-play-hint">Create or join a room.</div>
             </div>
             <div className="quick-grid">
               {TIME_CONTROL_OPTIONS.map((item) => {
@@ -376,19 +376,17 @@ export default function HomePage() {
           <div className="panel action-panel home-action-panel" ref={createPanelRef}>
             <div className="panel-heading">
               <h2>Create Game</h2>
-              <span className="panel-hint">Room settings</span>
+              <span className="panel-hint">Create room</span>
             </div>
             <div className="create-summary-stack">
               <div className="summary-chip-row">
                 <span className="summary-chip">{timeControl}</span>
                 <span className="summary-chip muted">{rated ? "Rated" : "Casual"}</span>
               </div>
-              <div className="inline-note subtle compact-side-note">
-                Stake rooms use `justdebateonline` escrow with a 4% fee and a 0.002 HIVE minimum.
-              </div>
               <button className="primary big-action" onClick={() => setCreateModalOpen(true)} disabled={!token}>
                 Open create room dialog
               </button>
+              <div className="compact-side-note subtle">4% fee on stake rooms, 0.002 HIVE minimum.</div>
             </div>
           </div>
 
