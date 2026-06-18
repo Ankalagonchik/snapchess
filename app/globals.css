@@ -360,6 +360,34 @@ select {
   min-height: 0;
 }
 
+.action-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.action-row-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(153, 183, 216, 0.12);
+  background: linear-gradient(180deg, rgba(54, 47, 51, 0.98), rgba(40, 35, 40, 0.98));
+  color: #e5e7ec;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action-row-button:hover {
+  border-color: rgba(244, 168, 75, 0.25);
+}
+
+.action-row-button.ghostish {
+  background: linear-gradient(180deg, rgba(42, 40, 45, 0.98), rgba(32, 31, 36, 0.98));
+}
+
 .compact-side-panel {
   padding: 12px;
 }
@@ -1153,6 +1181,31 @@ select {
   display: block;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(3, 7, 12, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(153, 183, 216, 0.14);
+  background: linear-gradient(180deg, rgba(21, 27, 37, 0.98), rgba(17, 22, 30, 0.98));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.modal-heading {
+  margin-bottom: 14px;
+}
+
 .profile-shell .topbar {
   margin-bottom: 18px;
 }
@@ -1285,6 +1338,10 @@ select {
 
   .action-panel-grid {
     grid-template-columns: 1fr;
+  }
+
+  .modal-backdrop {
+    padding: 14px;
   }
 
   .rail-clock {

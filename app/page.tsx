@@ -74,6 +74,7 @@ export default function HomePage() {
   const [stakeAmount, setStakeAmount] = useState("0");
   const [rated, setRated] = useState(true);
   const [leaderboardView, setLeaderboardView] = useState<"rating" | "hive">("rating");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const activeLeaders = leaderboardView === "rating" ? lobby.leaderboards.rating : lobby.leaderboards.hive;
@@ -201,6 +202,7 @@ export default function HomePage() {
 
       window.open(`/game/${payload.game.id}`, "_blank", "noopener,noreferrer");
       setStatus(`Game created and opened in a new tab. Code: ${payload.game.inviteCode}`);
+      setCreateModalOpen(false);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not create game.");
     } finally {
@@ -309,7 +311,10 @@ export default function HomePage() {
                     key={item}
                     type="button"
                     className={`time-tile ${timeControl === item ? "active" : ""}`}
-                    onClick={() => setTimeControl(item)}
+                    onClick={() => {
+                      setTimeControl(item);
+                      setStatus(`Selected ${item}. You can join an open table or create a room.`);
+                    }}
                   >
                     <span className="time-tile-main">{speed}</span>
                     <span className="time-tile-sub">{category}</span>
@@ -319,7 +324,7 @@ export default function HomePage() {
               <button
                 type="button"
                 className="time-tile time-tile-custom"
-                onClick={() => createPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                onClick={() => setCreateModalOpen(true)}
               >
                 <span className="time-tile-main">Custom</span>
                 <span className="time-tile-sub">Create room</span>
@@ -356,42 +361,18 @@ export default function HomePage() {
         <aside className="stack home-right-rail">
           <div className="panel action-panel home-action-panel" ref={createPanelRef}>
             <div className="panel-heading">
-              <h2>Create Game</h2>
-              <span className="panel-hint">Challenge or open public</span>
+              <h2>Actions</h2>
+              <span className="panel-hint">Create or challenge</span>
             </div>
-            <div className="form-grid">
-              <div className="field">
-                <label>Selected time control</label>
-                <select value={timeControl} onChange={(event) => setTimeControl(event.target.value)}>
-                  {TIME_CONTROL_OPTIONS.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Invite username</label>
-                <input value={reservedOpponent} onChange={(event) => setReservedOpponent(event.target.value)} placeholder="eddiespino" />
-              </div>
-              <div className="two-col action-panel-grid">
-                <div className="field">
-                  <label>Stake in HIVE</label>
-                  <input value={stakeAmount} onChange={(event) => setStakeAmount(event.target.value)} placeholder="0" />
-                </div>
-                <div className="field">
-                  <label>Rating mode</label>
-                  <select value={rated ? "rated" : "casual"} onChange={(event) => setRated(event.target.value === "rated")}>
-                    <option value="rated">Rated</option>
-                    <option value="casual">Casual</option>
-                  </select>
-                </div>
-              </div>
-              <button className="primary big-action" onClick={createChallengeGame} disabled={!token || loading}>
-                Create and open table
+            <div className="action-stack">
+              <button className="action-row-button" onClick={() => setCreateModalOpen(true)}>
+                <span>Create room for {timeControl}</span>
+              </button>
+              <button className="action-row-button ghostish" onClick={() => setCreateModalOpen(true)}>
+                <span>Challenge a friend</span>
               </button>
               <div className="inline-note subtle compact-side-note">
-                Uses `justdebateonline` escrow with 4% fee and a 0.002 HIVE minimum.
+                Selected: <strong>{timeControl}</strong>. Stake rooms use `justdebateonline` escrow with a 4% fee and a 0.002 HIVE minimum.
               </div>
             </div>
           </div>
@@ -420,6 +401,51 @@ export default function HomePage() {
           </div>
         </aside>
       </section>
+
+      {createModalOpen ? (
+        <div className="modal-backdrop" onClick={() => setCreateModalOpen(false)}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="panel-heading modal-heading">
+              <h2>Create Game</h2>
+              <button className="ghost small-button" onClick={() => setCreateModalOpen(false)}>
+                Close
+              </button>
+            </div>
+            <div className="form-grid">
+              <div className="field">
+                <label>Time control</label>
+                <select value={timeControl} onChange={(event) => setTimeControl(event.target.value)}>
+                  {TIME_CONTROL_OPTIONS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>Invite username</label>
+                <input value={reservedOpponent} onChange={(event) => setReservedOpponent(event.target.value)} placeholder="eddiespino" />
+              </div>
+              <div className="two-col action-panel-grid">
+                <div className="field">
+                  <label>Stake in HIVE</label>
+                  <input value={stakeAmount} onChange={(event) => setStakeAmount(event.target.value)} placeholder="0" />
+                </div>
+                <div className="field">
+                  <label>Rating mode</label>
+                  <select value={rated ? "rated" : "casual"} onChange={(event) => setRated(event.target.value === "rated")}>
+                    <option value="rated">Rated</option>
+                    <option value="casual">Casual</option>
+                  </select>
+                </div>
+              </div>
+              <button className="primary big-action" onClick={createChallengeGame} disabled={!token || loading}>
+                Create and open table
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
