@@ -501,10 +501,12 @@ select {
   min-width: 0;
   align-self: start;
   width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .clean-board-wrap {
-  width: 100%;
+  width: fit-content;
   padding: 0;
   background: transparent;
   border: none;
@@ -515,7 +517,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: auto;
   padding: 0;
   border: none;
   border-radius: 0;
