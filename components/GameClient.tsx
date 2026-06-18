@@ -33,6 +33,14 @@ type PostGameAnalysis = {
   black: PlayerAnalysisSummary;
 };
 
+type EngineSnapshot = {
+  depth: number;
+  scoreCp: number | null;
+  scoreMate: number | null;
+  bestMove: string | null;
+  pv: string[];
+};
+
 function getStakeMemo(gameId: string, username: string) {
   return `stake:${gameId}:${username.trim().toLowerCase()}`;
 }
@@ -159,6 +167,71 @@ function buildAnalysisPath(values: number[], width: number, height: number) {
     .join(" ");
 }
 
+function analyzeFenWithWorker(worker: Worker, fen: string, depth = 10) {
+  return new Promise<EngineSnapshot>((resolve) => {
+    const snapshot: EngineSnapshot = {
+      depth: 0,
+      scoreCp: null,
+      scoreMate: null,
+      bestMove: null,
+      pv: [],
+    };
+
+    const handleMessage = (event: MessageEvent<string>) => {
+      const message = event.data;
+
+      if (message === "readyok") {
+        worker.postMessage(`position fen ${fen}`);
+        worker.postMessage(`go depth ${depth}`);
+        return;
+      }
+
+      if (message.startsWith("info depth ")) {
+        const depthMatch = message.match(/depth\s+(\d+)/);
+        const cpMatch = message.match(/score cp\s+(-?\d+)/);
+        const mateMatch = message.match(/score mate\s+(-?\d+)/);
+        const pvMatch = message.match(/ pv\s+(.+)$/);
+        snapshot.depth = depthMatch ? Number(depthMatch[1]) : snapshot.depth;
+        snapshot.scoreCp = cpMatch ? Number(cpMatch[1]) : snapshot.scoreCp;
+        snapshot.scoreMate = mateMatch ? Number(mateMatch[1]) : snapshot.scoreMate;
+        snapshot.pv = pvMatch ? pvMatch[1].trim().split(/\s+/) : snapshot.pv;
+        return;
+      }
+
+      if (message.startsWith("bestmove ")) {
+        snapshot.bestMove = message.split(" ")[1] || null;
+        worker.removeEventListener("message", handleMessage);
+        resolve(snapshot);
+      }
+    };
+
+    worker.addEventListener("message", handleMessage);
+    worker.postMessage("stop");
+    worker.postMessage("ucinewgame");
+    worker.postMessage("setoption name Clear Hash");
+    worker.postMessage("isready");
+  });
+}
+
+function bootAnalysisWorker() {
+  return new Promise<Worker>((resolve) => {
+    const worker = new Worker("/stockfish/stockfish-18-lite-single.js");
+    const handleMessage = (event: MessageEvent<string>) => {
+      const message = event.data;
+      if (message === "readyok") {
+        worker.removeEventListener("message", handleMessage);
+        resolve(worker);
+      }
+    };
+
+    worker.addEventListener("message", handleMessage);
+    worker.postMessage("uci");
+    worker.postMessage("setoption name Threads value 1");
+    worker.postMessage("setoption name MultiPV value 1");
+    worker.postMessage("isready");
+  });
+}
+
 async function api<T>(url: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set("content-type", "application/json");
@@ -209,7 +282,7 @@ export function GameClient({ gameId }: { gameId: string }) {
   const [stakeVerifying, setStakeVerifying] = useState(false);
   const [postGameAnalysis, setPostGameAnalysis] = useState<PostGameAnalysis | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const { analysis, analyzeFen, analyzeFenOnce, stopAnalysis } = useStockfish();
+  const { analysis, analyzeFen, stopAnalysis } = useStockfish();
 
   const myColor = getMyColor(game, username);
   const displayTimes = useMemo(() => getLiveDisplayTimes(game), [game, tick]);
@@ -532,16 +605,23 @@ export function GameClient({ gameId }: { gameId: string }) {
       const initial = new Chess();
       const fens = [initial.fen(), ...game.moves.map((move) => move.fen)];
       const scores: number[] = [];
+      const worker = await bootAnalysisWorker();
 
-      for (const fen of fens) {
-        const result = await analyzeFenOnce(fen, 10);
-        scores.push(toWhitePerspectiveScore(fen, result));
+      try {
+        for (const fen of fens) {
+          const result = await analyzeFenWithWorker(worker, fen, 10);
+          scores.push(toWhitePerspectiveScore(fen, result));
+        }
+      } finally {
+        worker.postMessage("quit");
+        worker.terminate();
       }
 
       const reviews: MoveReview[] = game.moves.map((move, index) => {
         const scoreBefore = scores[index] ?? 0;
         const scoreAfter = scores[index + 1] ?? scoreBefore;
-        const centipawnLoss = move.color === "w" ? Math.max(0, scoreBefore - scoreAfter) : Math.max(0, scoreAfter - scoreBefore);
+        const centipawnLossRaw = move.color === "w" ? Math.max(0, scoreBefore - scoreAfter) : Math.max(0, scoreAfter - scoreBefore);
+        const centipawnLoss = Math.min(500, centipawnLossRaw);
         return {
           ply: index + 1,
           moveNumber: Math.floor(index / 2) + 1,
